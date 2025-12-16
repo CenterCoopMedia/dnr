@@ -36,6 +36,7 @@ load_dotenv()
 # Import pipeline components
 from main import run_pipeline, fetch_all_stories, classify_all_stories, deduplicate_stories, organize_by_section, create_mailchimp_draft
 from html_formatter import build_newsletter, count_stories
+from airtable_fetcher import update_submissions_batch, NEWSLETTER_TO_AIRTABLE
 
 
 # Day of week constants
@@ -143,6 +144,135 @@ def prompt_continue():
     input("\nPress Enter to continue...")
 
 
+def review_airtable_submissions(classified_stories: list[dict]) -> list[dict]:
+    """
+    Review and approve source and section assignments for Airtable submissions.
+
+    Both source and section must be set to trigger the notification automation.
+
+    Args:
+        classified_stories: List of classified stories (some may be from Airtable)
+
+    Returns:
+        List of approved updates to send to Airtable
+    """
+    # Find stories from Airtable that need review
+    # Only include stories that don't have BOTH source and section already set
+    airtable_stories = [
+        s for s in classified_stories
+        if s.get("from_airtable") and s.get("id")
+    ]
+
+    if not airtable_stories:
+        print("\n  No Airtable submissions to review.")
+        return []
+
+    print(f"\n  Found {len(airtable_stories)} user-submitted stories to review.")
+    print("  You'll review the SOURCE and SECTION for each story.")
+    print("  Both must be set to trigger the notification email to the submitter.")
+    print()
+    print("  Commands:")
+    print("    - Enter: Approve suggested values")
+    print("    - 's': Skip this story (don't update Airtable)")
+    print()
+
+    # Section options
+    sections = ["top_stories", "politics", "housing", "education", "health", "environment", "lastly"]
+    section_display = {
+        "top_stories": "Top stories",
+        "politics": "Politics + government",
+        "housing": "Housing + development",
+        "education": "Work + education",
+        "health": "Health + safety",
+        "environment": "Climate + environment",
+        "lastly": "Lastly"
+    }
+
+    approved_updates = []
+
+    for i, story in enumerate(airtable_stories, 1):
+        headline = story.get("headline", story.get("title", "No headline"))[:70]
+        url = story.get("url", "")
+        current_source = story.get("source", "").strip()
+        suggested_section = story.get("section", "lastly")
+        submitter = story.get("submitter_name", "Anonymous")
+        submitter_email = story.get("submitter_email", "")
+
+        print(f"\n{'='*60}")
+        print(f"[{i}/{len(airtable_stories)}] {headline}...")
+        print(f"    URL: {url[:60]}...")
+        print(f"    Submitted by: {submitter}" + (f" ({submitter_email})" if submitter_email else ""))
+        print()
+
+        # Step 1: Review/set SOURCE
+        print(f"    Current source: {current_source if current_source else '(empty)'}")
+
+        if current_source:
+            source_response = input(f"    Source [{current_source}]: ").strip()
+            final_source = source_response if source_response else current_source
+        else:
+            # Try to extract source from URL
+            from html_formatter import extract_source_from_url
+            suggested_source = extract_source_from_url(url)
+            if suggested_source:
+                source_response = input(f"    Source [{suggested_source}]: ").strip()
+                final_source = source_response if source_response else suggested_source
+            else:
+                final_source = input("    Source (required): ").strip()
+                if not final_source:
+                    print("    ⊘ Skipped (source is required)")
+                    continue
+
+        # Check for skip
+        if final_source.lower() == 's':
+            print("    ⊘ Skipped")
+            continue
+
+        # Step 2: Review/set SECTION
+        print()
+        print(f"    Suggested section: {section_display.get(suggested_section, suggested_section)}")
+        print("    Section options:")
+        for j, sec in enumerate(sections, 1):
+            marker = " *" if sec == suggested_section else ""
+            print(f"      {j}. {section_display.get(sec, sec)}{marker}")
+
+        while True:
+            section_response = input("\n    Section (1-7 or Enter to approve): ").strip().lower()
+
+            if section_response == "":
+                final_section = suggested_section
+                break
+            elif section_response == "s":
+                final_section = None
+                break
+            elif section_response.isdigit() and 1 <= int(section_response) <= 7:
+                final_section = sections[int(section_response) - 1]
+                break
+            else:
+                print("    Invalid choice. Enter 1-7, 's' to skip, or press Enter.")
+
+        if final_section is None:
+            print("    ⊘ Skipped")
+            continue
+
+        # Approve the update
+        approved_updates.append({
+            "id": story["id"],
+            "source": final_source,
+            "section": final_section
+        })
+
+        # Update the story object for the newsletter
+        story["source"] = final_source
+        story["section"] = final_section
+
+        print(f"\n    ✓ Approved:")
+        print(f"      Source: {final_source}")
+        print(f"      Section: {section_display.get(final_section, final_section)}")
+
+    return approved_updates
+
+
 def run_workflow(
     include_playwright: bool = False,
     enrich_stories: bool = False,
@@ -185,7 +315,7 @@ def run_workflow(
         print("\nWorkflow cancelled.")
         return
 
-    total_steps = 6
+    total_steps = 7
 
     # Step 1: Fetch stories
     print_step(1, total_steps, "Fetching stories from all sources")
@@ -255,8 +385,28 @@ def run_workflow(
         print(f"\nError classifying stories: {e}")
         return
 
-    # Step 4: Generate HTML
-    print_step(4, total_steps, "Generating HTML preview")
+    # Step 4: Review Airtable submissions
+    print_step(4, total_steps, "Review user-submitted stories")
+
+    airtable_updates = review_airtable_submissions(unique)
+
+    if airtable_updates:
+        print(f"\n  {len(airtable_updates)} stories approved for Airtable update.")
+        if prompt_yes_no("  Update Airtable now?"):
+            print("  Updating Airtable...")
+            results = update_submissions_batch(airtable_updates)
+            print(f"  ✓ Updated {results['success']} records in Airtable")
+            if results['failed']:
+                print(f"  ⚠ Failed to update {len(results['failed'])} records")
+            print("  (Submitters will receive notification emails)")
+        else:
+            print("  Skipped Airtable update.")
+
+    # Re-organize sections in case any were changed during review
+    sections = organize_by_section(unique)
+
+    # Step 5: Generate HTML
+    print_step(5, total_steps, "Generating HTML preview")
 
     try:
         html = build_newsletter(sections)
@@ -276,8 +426,8 @@ def run_workflow(
         print(f"\nError generating HTML: {e}")
         return
 
-    # Step 5: Review
-    print_step(5, total_steps, "Review preview")
+    # Step 6: Review
+    print_step(6, total_steps, "Review preview")
 
     print("\nOpening preview in your browser...")
     webbrowser.open(f"file://{preview_path.absolute()}")
@@ -291,8 +441,8 @@ def run_workflow(
 
     prompt_continue()
 
-    # Step 6: Approval and publish
-    print_step(6, total_steps, "Create Mailchimp draft")
+    # Step 7: Approval and publish
+    print_step(7, total_steps, "Create Mailchimp draft")
 
     print("\nReady to create Mailchimp draft campaign?")
     print("This will create a DRAFT - you still need to review and send in Mailchimp.")

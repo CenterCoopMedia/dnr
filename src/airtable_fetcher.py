@@ -136,6 +136,72 @@ def mark_as_processed(record_ids: list[str]) -> None:
             print(f"Error marking {record_id} as processed: {e}")
 
 
+def update_submission(record_id: str, source: str = None, section: str = None) -> bool:
+    """
+    Update a submission's source and/or section in Airtable.
+
+    This triggers the automation that notifies submitters their story was approved.
+
+    Args:
+        record_id: Airtable record ID
+        source: Source name to set (optional)
+        section: Newsletter section name (will be converted to Airtable format)
+
+    Returns:
+        True if successful, False otherwise
+    """
+    table = get_airtable_table()
+
+    updates = {}
+    if source:
+        updates["Source"] = source
+    if section:
+        # Convert newsletter section name to Airtable section name
+        airtable_section = NEWSLETTER_TO_AIRTABLE.get(section, section)
+        updates["Section"] = airtable_section
+
+    if not updates:
+        return True  # Nothing to update
+
+    try:
+        table.update(record_id, updates)
+        return True
+    except Exception as e:
+        print(f"Error updating {record_id}: {e}")
+        return False
+
+
+def update_submissions_batch(updates: list[dict]) -> dict:
+    """
+    Update multiple submissions in Airtable.
+
+    Args:
+        updates: List of dicts with 'id', 'source', and 'section' keys
+
+    Returns:
+        Dict with 'success' count and 'failed' list
+    """
+    results = {"success": 0, "failed": []}
+
+    for update in updates:
+        record_id = update.get("id")
+        if not record_id:
+            continue
+
+        success = update_submission(
+            record_id=record_id,
+            source=update.get("source"),
+            section=update.get("section")
+        )
+
+        if success:
+            results["success"] += 1
+        else:
+            results["failed"].append(record_id)
+
+    return results
+
+
 def get_submissions_by_section() -> dict[str, list[dict]]:
     """
     Fetch all recent submissions grouped by section.

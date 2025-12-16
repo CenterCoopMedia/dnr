@@ -17,18 +17,109 @@ SECTIONS = [
     "education",
     "health",
     "environment",
-    "lastly"
+    "lastly",
+    "skip"  # For non-NJ or irrelevant content
 ]
 
+# Section descriptions based on historical newsletter patterns
 SECTION_DESCRIPTIONS = {
-    "top_stories": "Major breaking news, high-impact statewide stories, investigations, stories covered by multiple outlets",
-    "politics": "Government, legislature, elections, campaigns, courts, police, corruption, budgets, taxes, voting",
-    "housing": "Affordable housing, rent, development, zoning, real estate, homelessness, construction, warehouses",
-    "education": "Schools (K-12), universities, colleges, school boards, teachers, curriculum, education policy",
-    "health": "Healthcare, hospitals, public health, mental health, addiction, insurance, medical issues",
-    "environment": "Climate, clean energy, weather, pollution, environmental regulations, offshore wind, PFAS",
-    "lastly": "Arts, culture, sports, entertainment, restaurants, community events, human interest, lighter news"
+    "top_stories": "Major NJ POLICY news with statewide impact: stories covered by 2+ major NJ outlets (NJ Monitor, NJ Spotlight, NJ Globe, NJ.com), major court rulings, statewide investigations, government accountability, budget/fiscal news, infrastructure (Gateway Tunnel), immigration policy, election coverage. NEVER include: individual crimes, car crashes, fires, murders, 'if it bleeds it leads' stories, local incidents without policy implications.",
+    "politics": "NJ government and policy: NJ legislature bills/votes, elections/campaigns, county/municipal government, court decisions, cannabis licensing/policy, corruption/scandals, open records/transparency, NJ Transit policy, taxes/budgets, police reform. Focus on NEW JERSEY government only.",
+    "housing": "NJ housing and development: affordable housing projects, rent control, utility shutoffs, zoning decisions, real estate market, Blue Acres flood buyouts, senior housing, warehouse developments, property tax, homelessness, evictions. Must be about New Jersey locations.",
+    "education": "NJ education: K-12 school budgets, school board elections/controversies, higher ed (Rutgers, MSU, community colleges), curriculum debates (sex ed), teacher issues, student mental health, school start times, school segregation. Must involve New Jersey educational institutions.",
+    "health": "NJ health: COVID updates (cases, vaccines, mandates), hospital news, health disparities, public health policy, mental health, nursing homes, healthcare access. Must be about New Jersey healthcare or directly affect NJ residents.",
+    "environment": "NJ environment: offshore wind projects, clean energy policy, warehouse bans (environmental impact), significant weather events (NOT routine forecasts), tree preservation, Superfund sites/PFAS, climate initiatives, plastic bag ban, Pinelands, spotted lanternfly. Must be about New Jersey.",
+    "lastly": "Lighter NJ news: arts/culture, NJ sports (Devils, local teams), restaurants/food, community events, human interest profiles, tourism (shore, AC), product recalls, casinos, local celebrations. Lighter news with NJ focus.",
+    "skip": "NOT for newsletter: National/wire stories without NJ focus, NYC-only news (Manhattan, Brooklyn, etc.), generic health/lifestyle advice, Pennsylvania/Delaware news, national politics without NJ angle, stories that only mention NJ in passing, individual crimes/crashes without policy implications."
 }
+
+# Keywords that indicate NJ relevance
+NJ_KEYWORDS = [
+    "new jersey", "n.j.", "nj", "jersey", "newark", "trenton", "camden", "paterson",
+    "jersey city", "elizabeth", "edison", "woodbridge", "lakewood", "toms river",
+    "hamilton", "clifton", "brick", "cherry hill", "passaic", "union city",
+    "bayonne", "east orange", "vineland", "new brunswick", "perth amboy", "hoboken",
+    "plainfield", "hackensack", "sayreville", "kearny", "linden", "atlantic city",
+    "montclair", "maplewood", "south orange", "morristown", "princeton", "rutgers",
+    "murphy", "sherrill", "nj transit", "garden state", "turnpike", "parkway",
+    "shore", "pinelands", "meadowlands"
+]
+
+# Keywords that indicate non-NJ content to skip
+SKIP_KEYWORDS = [
+    "new york city", "nyc", "manhattan", "brooklyn", "queens", "bronx", "staten island",
+    "long island", "upstate new york", "westchester", "connecticut", "pennsylvania",
+    "washington d.c.", "california", "texas", "florida", "chicago", "los angeles",
+    "trump tower", "white house"  # National politics without NJ angle
+]
+
+# Keywords that should NEVER be in top_stories (crime/crash/"if it bleeds it leads")
+# These stories should go to skip or other sections, not top_stories
+TOP_STORIES_EXCLUSION_KEYWORDS = [
+    # Crime
+    "carjacked", "carjacking", "robbed", "robbery", "robbery", "murder", "murdered",
+    "homicide", "killed", "killing", "stabbed", "stabbing", "shot", "shooting",
+    "assault", "assaulted", "armed robbery", "home invasion", "burglar", "burglary",
+    "theft", "stolen", "arson", "kidnapped", "kidnapping", "rape", "raped",
+    "sex assault", "sexual assault", "manslaughter", "hit-and-run", "hit and run",
+    "drug bust", "drug arrest", "overdose", "found dead", "body found",
+    # Crashes/accidents
+    "crash", "crashed", "fatal crash", "deadly crash", "wrong-way driver",
+    "car accident", "vehicle accident", "truck crash", "bus crash", "pedestrian struck",
+    "pedestrian hit", "pedestrian killed", "motorcyclist killed", "cyclist killed",
+    "dies in crash", "killed in crash", "injured in crash", "multi-car",
+    "multi-vehicle", "pileup", "pile-up", "rollover",
+    # Fires/disasters (unless policy-related)
+    "house fire", "apartment fire", "building fire", "blaze kills", "fire kills",
+    "explosion kills", "gas explosion",
+    # Other incidents
+    "drowning", "drowned", "missing person", "amber alert", "child abduction",
+]
+
+
+def is_crime_or_crash_headline(headline: str) -> bool:
+    """
+    Check if a headline is about crime, crashes, or other incidents
+    that shouldn't be in top_stories.
+
+    Args:
+        headline: Story headline
+
+    Returns:
+        True if this is a crime/crash story
+    """
+    headline_lower = headline.lower()
+    for keyword in TOP_STORIES_EXCLUSION_KEYWORDS:
+        if keyword in headline_lower:
+            return True
+    return False
+
+
+def filter_top_stories(stories: list[dict]) -> list[dict]:
+    """
+    Post-classification filter to move crime/crash stories out of top_stories.
+
+    Stories with crime/crash keywords are moved to 'skip' section.
+
+    Args:
+        stories: List of classified stories
+
+    Returns:
+        Stories with top_stories filtered
+    """
+    filtered_count = 0
+    for story in stories:
+        if story.get("section") == "top_stories":
+            headline = story.get("headline", story.get("title", ""))
+            if is_crime_or_crash_headline(headline):
+                story["section"] = "skip"
+                story["filter_reason"] = "crime/crash content excluded from top_stories"
+                filtered_count += 1
+
+    if filtered_count > 0:
+        print(f"   Filtered {filtered_count} crime/crash stories from top_stories")
+
+    return stories
 
 
 def classify_story(
@@ -63,7 +154,9 @@ def classify_story(
         for section, desc in SECTION_DESCRIPTIONS.items()
     ])
 
-    prompt = f"""You are classifying New Jersey news stories for a daily newsletter.
+    prompt = f"""You are classifying news stories for a NEW JERSEY-focused daily newsletter.
+
+CRITICAL: This newsletter is ONLY for New Jersey news. Stories must be directly about New Jersey.
 
 Given this story:
 {story_info}
@@ -75,9 +168,20 @@ Respond with JSON only:
 {{"section": "section_name", "confidence": 0.0-1.0, "reasoning": "brief explanation"}}
 
 Rules:
-- If multiple outlets cover the same story, it's likely "top_stories"
-- Breaking news and major statewide impact = "top_stories"
-- Light/fun stories, arts, sports = "lastly"
+- FIRST: Check if story is about New Jersey. Use "skip" if:
+  - Story is about NYC, NY state, Pennsylvania, or other states (unless NJ is primary focus)
+  - Story is national news without a specific NJ angle
+  - Story is generic health/lifestyle advice not specific to NJ
+  - Story mentions NJ only in passing but focuses elsewhere
+
+- TOP_STORIES is ONLY for major POLICY news with statewide impact:
+  - Stories covered by multiple major NJ outlets
+  - Government accountability, investigations, major court rulings
+  - Budget/fiscal news, infrastructure, immigration policy
+  - NEVER put crimes, car crashes, fires, murders, or "if it bleeds it leads" in top_stories
+  - Individual incidents without policy implications go elsewhere or skip
+
+- Light/fun NJ stories, arts, sports, restaurants = "lastly"
 - When uncertain between sections, choose the more specific one
 - Confidence should reflect how clearly it fits the section"""
 
@@ -147,7 +251,9 @@ def classify_stories_batch(stories: list[dict], max_per_request: int = 10) -> li
             for section, desc in SECTION_DESCRIPTIONS.items()
         ])
 
-        prompt = f"""Classify these New Jersey news stories for a daily newsletter.
+        prompt = f"""Classify these news stories for a NEW JERSEY-focused daily newsletter.
+
+CRITICAL: This newsletter is ONLY for New Jersey news. Stories must be directly about New Jersey.
 
 Stories:
 {stories_text}
@@ -159,8 +265,20 @@ Respond with JSON array only - one object per story in order:
 [{{"story": 1, "section": "section_name", "confidence": 0.0-1.0}}, ...]
 
 Rules:
-- Breaking news, major statewide impact, multi-outlet coverage = "top_stories"
-- Light/fun stories, arts, sports, human interest = "lastly"
+- FIRST: Check if each story is about New Jersey. Use "skip" if:
+  - Story is about NYC, NY state, Pennsylvania, or other states (unless NJ is primary focus)
+  - Story is national news without a specific NJ angle
+  - Story is generic health/lifestyle advice not specific to NJ
+  - Story mentions NJ only in passing but focuses elsewhere
+
+- TOP_STORIES is ONLY for major POLICY news with statewide impact:
+  - Stories covered by multiple major NJ outlets
+  - Government accountability, investigations, major court rulings
+  - Budget/fiscal news, infrastructure, immigration policy
+  - NEVER put crimes, car crashes, fires, murders, or "if it bleeds it leads" in top_stories
+  - Individual incidents without policy implications go elsewhere or skip
+
+- Light/fun NJ stories, arts, sports, restaurants, human interest = "lastly"
 - Choose the most specific applicable section"""
 
         try:

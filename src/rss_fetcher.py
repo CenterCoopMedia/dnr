@@ -34,6 +34,45 @@ def transform_url(url: str, source_name: str) -> str:
     return url
 
 
+# Patterns that indicate generic broadcasts/roundups to skip
+SKIP_HEADLINE_PATTERNS = [
+    "newscast for",           # "WHYY Newscast for Tuesday, 11:00 a.m."
+    "morning edition",        # Generic morning shows
+    "evening edition",
+    "daily briefing",
+    "news roundup for",       # Generic daily roundups
+    "weather forecast for",   # Generic weather forecasts (not weather news)
+    "traffic report",
+    "this week on",           # Weekly show promos
+    "tonight on",
+    "podcast:",               # Podcast episode announcements
+    "listen:",
+    "watch:",
+    "live stream",
+    "livestream",
+    "nj spotlight news:",     # "NJ Spotlight News: December 15, 2025"
+    "whyy news:",             # Similar date-based broadcasts
+    "njtv news:",
+]
+
+
+def is_generic_broadcast(headline: str) -> bool:
+    """
+    Check if a headline is a generic broadcast/roundup that should be skipped.
+
+    Args:
+        headline: Article headline
+
+    Returns:
+        True if this is a generic broadcast to skip, False otherwise
+    """
+    headline_lower = headline.lower()
+    for pattern in SKIP_HEADLINE_PATTERNS:
+        if pattern in headline_lower:
+            return True
+    return False
+
+
 def load_feed_config() -> dict:
     """Load RSS feed configuration from JSON file."""
     config_path = Path(__file__).parent.parent / "config" / "rss_feeds.json"
@@ -77,8 +116,14 @@ def parse_feed(url: str, source_name: str, hours_back: int = 24) -> list[dict]:
             raw_url = entry.get("link", "")
             transformed_url = transform_url(raw_url, source_name)
 
+            title = entry.get("title", "").strip()
+
+            # Skip generic broadcasts (e.g., "WHYY Newscast for Tuesday")
+            if is_generic_broadcast(title):
+                continue
+
             article = {
-                "title": entry.get("title", "").strip(),
+                "title": title,
                 "url": transformed_url,
                 "source": source_name,
                 "published": published.isoformat() if published else None,

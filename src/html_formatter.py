@@ -55,18 +55,30 @@ def format_grouped_story(headline: str, sources: list[tuple[str, str]]) -> str:
     return f'<li>{headline} ({source_links})</li>'
 
 
-def format_section_stories(stories: list[dict]) -> str:
+def format_section_stories(stories: list[dict], max_stories: int = 20) -> str:
     """
     Format all stories for a section as HTML list items.
 
     Args:
         stories: List of story dicts with headline, url, source
+        max_stories: Maximum stories to include per section
 
     Returns:
         HTML string of all <li> elements
     """
     items = []
-    for story in stories:
+    for story in stories[:max_stories]:  # Limit stories per section
+        # Get source - skip stories without proper attribution
+        source = story.get("source", "").strip()
+        if not source or source == "Unknown":
+            # Try to extract source from URL domain
+            url = story.get("url", "")
+            source = extract_source_from_url(url)
+
+        # Skip stories without source attribution
+        if not source:
+            continue
+
         # Check if it's a grouped story (has multiple sources)
         if "sources" in story and isinstance(story["sources"], list):
             item = format_grouped_story(
@@ -77,11 +89,77 @@ def format_section_stories(stories: list[dict]) -> str:
             item = format_story(
                 headline=story.get("headline", story.get("title", "")),
                 url=story.get("url", ""),
-                source=story.get("source", "Unknown")
+                source=source
             )
         items.append(item)
 
     return "\n                      ".join(items)
+
+
+def extract_source_from_url(url: str) -> str:
+    """
+    Extract a readable source name from a URL domain.
+
+    Args:
+        url: Full URL
+
+    Returns:
+        Source name or empty string if can't determine
+    """
+    from urllib.parse import urlparse
+
+    if not url:
+        return ""
+
+    try:
+        domain = urlparse(url).netloc.lower()
+        domain = domain.replace("www.", "")
+
+        # Map domains to source names
+        domain_map = {
+            "nj.com": "NJ.com",
+            "njspotlightnews.org": "NJ Spotlight News",
+            "newjerseymonitor.com": "NJ Monitor",
+            "newjerseyglobe.com": "NJ Globe",
+            "northjersey.com": "NorthJersey.com",
+            "app.com": "Asbury Park Press",
+            "pressofatlanticcity.com": "Press of Atlantic City",
+            "njbiz.com": "NJ Biz",
+            "roi-nj.com": "ROI-NJ",
+            "trentonian.com": "Trentonian",
+            "montclairlocal.news": "Montclair Local",
+            "villagegreennj.com": "Village Green",
+            "baristanet.com": "Baristanet",
+            "hudsonreporter.com": "Hudson Reporter",
+            "jerseydigs.com": "Jersey Digs",
+            "morristowngreen.com": "Morristown Green",
+            "unionnewsdaily.com": "Union News Daily",
+            "mercerme.com": "MercerMe",
+            "planetprinceton.com": "Planet Princeton",
+            "jerseyshoreonline.com": "Jersey Shore Online",
+            "njpen.com": "NJ Pen",
+            "njarts.net": "NJ Arts",
+            "njedreport.com": "NJ Education Report",
+            "insidernj.com": "InsiderNJ",
+            "whyy.org": "WHYY",
+            "gothamist.com": "Gothamist",
+            "tapinto.net": "TAPinto",
+            "njdemocrat.substack.com": "NJ Democrat",
+            "echonewstv.com": "Echo News TV",
+        }
+
+        # Check for exact match
+        if domain in domain_map:
+            return domain_map[domain]
+
+        # Check for partial match (subdomains)
+        for key, value in domain_map.items():
+            if key in domain:
+                return value
+
+        return ""
+    except:
+        return ""
 
 
 def build_newsletter(

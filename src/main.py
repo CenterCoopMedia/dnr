@@ -32,7 +32,7 @@ load_dotenv()
 
 # Import our modules
 from airtable_fetcher import fetch_submissions, SECTION_MAP
-from classifier import classify_stories_batch, SECTIONS
+from classifier import classify_stories_batch, SECTIONS, filter_top_stories
 from html_formatter import build_newsletter, preview_newsletter, count_stories
 from rss_fetcher import fetch_all_feeds
 
@@ -123,6 +123,9 @@ def classify_all_stories(stories: list[dict]) -> list[dict]:
         newly_classified = classify_stories_batch(to_classify)
         classified.extend(newly_classified)
 
+    # Post-classification filter: remove crime/crash from top_stories
+    classified = filter_top_stories(classified)
+
     return classified
 
 
@@ -164,18 +167,29 @@ def organize_by_section(stories: list[dict], max_top_stories: int = 6) -> dict[s
         max_top_stories: Maximum stories for top_stories section
 
     Returns:
-        Dict mapping section names to story lists
+        Dict mapping section names to story lists (excludes "skip" section)
     """
     print("\n📁 Organizing by section...")
 
-    sections = {section: [] for section in SECTIONS}
+    # Create sections dict excluding "skip" - those stories are filtered out
+    newsletter_sections = [s for s in SECTIONS if s != "skip"]
+    sections = {section: [] for section in newsletter_sections}
+
+    skipped_count = 0
 
     for story in stories:
         section = story.get("section", "lastly")
+        # Filter out stories marked as "skip" (non-NJ content)
+        if section == "skip":
+            skipped_count += 1
+            continue
         if section in sections:
             sections[section].append(story)
         else:
             sections["lastly"].append(story)
+
+    if skipped_count > 0:
+        print(f"   Filtered out {skipped_count} non-NJ stories")
 
     # Enforce top_stories limit
     if len(sections["top_stories"]) > max_top_stories:
@@ -220,7 +234,8 @@ def create_mailchimp_draft(html_content: str, subject: Optional[str] = None) -> 
 
     if not subject:
         today = datetime.now()
-        subject = f"Daily News Roundup: {today.strftime('%A, %B %d, %Y')}"
+        # Format: "Daily News Roundup: Dec. 16, 2025"
+        subject = f"Daily News Roundup: {today.strftime('%b. %d, %Y')}"
 
     try:
         client = MailchimpMarketing.Client()
