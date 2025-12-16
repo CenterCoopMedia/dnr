@@ -7,10 +7,15 @@ This script provides a guided workflow for creating the Daily News Roundup:
 4. Prompt for approval
 5. Create Mailchimp draft if approved
 
+Schedule: Monday through Thursday mornings
+- Monday: Pulls content from Friday 5am until now (covers weekend)
+- Tuesday-Thursday: Pulls content from last 36 hours
+
 Usage:
-    python src/workflow.py              # Standard workflow
+    python src/workflow.py              # Standard workflow (auto-detects hours)
     python src/workflow.py --playwright # Include paywalled sites
     python src/workflow.py --enrich     # Include URL enrichment
+    python src/workflow.py --hours 48   # Override auto-detection
 """
 
 import argparse
@@ -18,7 +23,7 @@ import os
 import subprocess
 import sys
 import webbrowser
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Fix Windows encoding
@@ -31,6 +36,70 @@ load_dotenv()
 # Import pipeline components
 from main import run_pipeline, fetch_all_stories, classify_all_stories, deduplicate_stories, organize_by_section, create_mailchimp_draft
 from html_formatter import build_newsletter, count_stories
+
+
+# Day of week constants
+MONDAY = 0
+TUESDAY = 1
+WEDNESDAY = 2
+THURSDAY = 3
+FRIDAY = 4
+SATURDAY = 5
+SUNDAY = 6
+
+DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+def calculate_hours_back() -> tuple[int, str]:
+    """
+    Calculate how many hours back to fetch stories based on current day.
+
+    Returns:
+        Tuple of (hours_back, explanation)
+
+    Schedule logic:
+    - Monday: From Friday 5am until now (covers weekend news)
+    - Tuesday-Thursday: Last 36 hours
+    - Friday-Sunday: Not a normal publish day, defaults to 24 hours
+    """
+    now = datetime.now()
+    day_of_week = now.weekday()
+
+    if day_of_week == MONDAY:
+        # Monday: go back to Friday 5am
+        # Calculate hours from Friday 5am to now
+        days_since_friday = 3  # Mon=0, Fri was 3 days ago
+        friday_5am = now.replace(hour=5, minute=0, second=0, microsecond=0) - timedelta(days=days_since_friday)
+        hours_back = int((now - friday_5am).total_seconds() / 3600)
+        explanation = f"Monday edition: covering Friday 5am through now ({hours_back} hours)"
+        return hours_back, explanation
+
+    elif day_of_week in (TUESDAY, WEDNESDAY, THURSDAY):
+        # Tue-Thu: 36 hours back
+        hours_back = 36
+        explanation = f"{DAY_NAMES[day_of_week]} edition: last 36 hours"
+        return hours_back, explanation
+
+    else:
+        # Friday, Saturday, Sunday - not normal publish days
+        hours_back = 24
+        explanation = f"{DAY_NAMES[day_of_week]}: not a normal publish day (using 24 hours)"
+        return hours_back, explanation
+
+
+def check_publish_day() -> tuple[bool, str]:
+    """
+    Check if today is a normal DNR publish day.
+
+    Returns:
+        Tuple of (is_publish_day, message)
+    """
+    day_of_week = datetime.now().weekday()
+
+    if day_of_week in (MONDAY, TUESDAY, WEDNESDAY, THURSDAY):
+        return True, f"Today is {DAY_NAMES[day_of_week]} - normal publish day"
+    else:
+        return False, f"Today is {DAY_NAMES[day_of_week]} - NOT a normal publish day (DNR runs Mon-Thu)"
 
 
 def clear_screen():
@@ -77,7 +146,7 @@ def prompt_continue():
 def run_workflow(
     include_playwright: bool = False,
     enrich_stories: bool = False,
-    hours_back: int = 24
+    hours_back: int = None  # None = auto-detect based on day
 ):
     """
     Run the interactive DNR workflow.
@@ -85,13 +154,30 @@ def run_workflow(
     Args:
         include_playwright: Include Playwright sources
         enrich_stories: Enable URL enrichment
-        hours_back: Hours to look back for stories
+        hours_back: Hours to look back for stories (None = auto-detect)
     """
     print_header()
 
+    # Check if today is a publish day
+    is_publish_day, day_message = check_publish_day()
+    print(f"  {day_message}")
+
+    if not is_publish_day:
+        print("\n  Warning: Today is not a normal DNR publish day.")
+        if not prompt_yes_no("  Continue anyway?", default=False):
+            print("\n  Workflow cancelled.")
+            return
+
+    # Calculate hours_back if not specified
+    if hours_back is None:
+        hours_back, hours_explanation = calculate_hours_back()
+        print(f"\n  {hours_explanation}")
+    else:
+        print(f"\n  Custom hours: {hours_back} (override)")
+
     # Show configuration
-    print("Configuration:")
-    print(f"  - Hours back: {hours_back}")
+    print("\nConfiguration:")
+    print(f"  - Time range: last {hours_back} hours")
     print(f"  - Playwright sources: {'Yes' if include_playwright else 'No'}")
     print(f"  - URL enrichment: {'Yes' if enrich_stories else 'No'}")
 
@@ -249,8 +335,8 @@ def main():
                         help="Include Playwright sources (paywalled sites)")
     parser.add_argument("--enrich", action="store_true",
                         help="Enable URL enrichment with Gemini")
-    parser.add_argument("--hours", type=int, default=24,
-                        help="Hours back to look for stories (default: 24)")
+    parser.add_argument("--hours", type=int, default=None,
+                        help="Hours back to look for stories (default: auto-detect based on day)")
 
     args = parser.parse_args()
 
@@ -258,7 +344,7 @@ def main():
         run_workflow(
             include_playwright=args.playwright,
             enrich_stories=args.enrich,
-            hours_back=args.hours
+            hours_back=args.hours  # None = auto-detect
         )
     except KeyboardInterrupt:
         print("\n\nWorkflow cancelled by user.")
