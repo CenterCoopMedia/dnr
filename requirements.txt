@@ -2,6 +2,9 @@
 requests>=2.31.0
 python-dotenv>=1.0.0
 
+# Airtable
+pyairtable>=2.2.0
+
 # Mailchimp
 mailchimp-marketing>=3.0.80
 
@@ -14,6 +17,9 @@ lxml>=4.9.0
 
 # Data analysis
 pandas>=2.0.0
+
+# AI classification
+anthropic>=0.18.0
 
 # Scheduling (optional - for automated runs)
 schedule>=1.2.0

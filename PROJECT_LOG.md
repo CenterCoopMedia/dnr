@@ -185,6 +185,54 @@ Stories are wrapped in `<ul>` tags within each section. Link colors inherit from
 
 ---
 
+## Editorial rules
+
+### Story limits
+- **Top Stories:** 3-6 stories maximum
+- **Other sections:** No hard limit, but typically 3-5 stories each
+
+### Story grouping/deduplication
+- When multiple outlets cover the same story/event, group them into a single listing
+- Multi-outlet coverage usually qualifies a story for Top Stories
+- Other sections may have occasional grouping but less common
+- Stories featured in Top Stories are **excluded** from topic sections (no duplication)
+
+### Grouped story format
+```html
+<li>Best headline that captures the story (<a href="URL1">Source 1</a>, <a href="URL2">Source 2</a>, <a href="URL3">Source 3</a>)
+```
+
+### Source order in grouped stories
+- Order discovered, OR
+- Outlet whose headline was selected appears first
+
+### Headline selection criteria
+- Choose the headline that best captures the essence of the story
+- Avoid hyperbolic or clickbait headlines
+- Use sentence case (not title case)
+- No quotes around headlines
+
+---
+
+## Airtable integration
+
+**Submission form URL:** Linked in each newsletter CTA
+**Base ID:** `appGc7YdwCFVYwTK8`
+**Table ID:** `tblXV80z8FCTDewts`
+**View ID:** `viwA6Is1wI1VyHRVv`
+
+### Submission fields
+| Field | Required | Used in newsletter |
+|-------|----------|-------------------|
+| Story headline | Yes | Yes |
+| Story URL | Yes | Yes |
+| Brief story summary | No | For classification |
+| Submitter name | Yes | No (internal) |
+| Submitter email | Yes | No (internal) |
+| Subscribe? | Yes | No (internal) |
+
+---
+
 ## Current status
 
 - ✅ Completed: Project setup and GitHub repo
@@ -192,11 +240,14 @@ Stories are wrapped in `<ul>` tags within each section. Link colors inherit from
 - ✅ Completed: Source domain identification
 - ✅ Completed: Category/topic pattern analysis
 - ✅ Completed: HTML format documentation
-- ⏳ In progress: Awaiting workflow clarification from Joe
-- 📋 Planned: Build RSS aggregation system
+- ✅ Completed: Editorial rules documented
+- ✅ Completed: Airtable integration credentials
+- ⏳ In progress: Awaiting Mailchimp API key
+- 📋 Planned: Compile RSS feed URLs for major sources
+- 📋 Planned: Build Airtable integration
 - 📋 Planned: Build story classification system
 - 📋 Planned: Build Mailchimp API integration
-- 📋 Planned: Build automation scheduler
+- 📋 Planned: Create Claude skill for DNR workflow
 
 ## Key files
 
@@ -227,12 +278,21 @@ Stories are wrapped in `<ul>` tags within each section. Link colors inherit from
 
 ## Architecture decisions
 
-**Pending clarification from Joe:**
-1. Source of raw story candidates (RSS feeds? Manual? Aggregator?)
-2. Classification approach (rules-based? AI-assisted?)
-3. Mailchimp API credentials and template setup
-4. Desired automation level (draft only vs. scheduled send)
-5. Hard rules for story inclusion/exclusion
+**Confirmed:**
+1. **Story sources:** RSS feeds from major outlets + Airtable submissions from readers/publishers
+2. **Classification:** AI-assisted (Claude API) based on headline, URL, and summary
+3. **Mailchimp:** Create draft campaign for review before sending
+4. **Deduplication:** AI clusters related stories, selects best headline, merges sources
+
+**Pipeline:**
+```
+RSS Feeds (daily poll) ────┐
+                           ├──→ Dedupe/Cluster ──→ AI Classification ──→ HTML Format ──→ Mailchimp Draft
+Airtable Submissions ──────┘
+```
+
+**Still needed:**
+- Mailchimp API key
 
 ## Future enhancements
 
