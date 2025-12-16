@@ -10,7 +10,7 @@ Automation system for the Daily News Roundup Mailchimp newsletter produced by th
 
 ## Session history
 
-### 2025-12-16 - Project initialization and data analysis
+### 2025-12-16 - Project initialization, full pipeline implementation
 
 **Setup completed:**
 - Created project directory at `C:\Users\Joe Amditis\Desktop\Crimes\sandbox\dnr`
@@ -22,6 +22,35 @@ Automation system for the Daily News Roundup Mailchimp newsletter produced by th
 - 7 CSV files containing ~33,000 lines of historical newsletter data
 - 1 HTML Mailchimp template
 - Data spans from March 2022 onward
+
+**API integrations completed:**
+- Airtable API: Connected, 486 submissions accessible
+- Mailchimp API: Connected, 1,977 subscribers on list "Daily News Digest from NJ News Commons"
+- Anthropic API: Connected, using Claude Haiku for cost-efficient classification
+
+**Modules built:**
+- `src/rss_fetcher.py` - Fetches from 75+ RSS feeds, 28 confirmed working
+- `src/airtable_fetcher.py` - Fetches reader/publisher submissions
+- `src/classifier.py` - Claude API batch classification into 7 sections
+- `src/html_formatter.py` - Generates Mailchimp-compatible HTML from template
+- `src/main.py` - Main pipeline orchestrator with --preview and --dry-run modes
+- `src/test_connections.py` - API connection testing utility
+
+**RSS feeds configured:**
+- 75+ NJ news outlets across 15 categories
+- 28 feeds returning articles successfully
+- TAPinto feeds return 0 (may need investigation)
+- USA Today network feeds return 0 (may need investigation)
+
+**Pipeline test results:**
+- Full preview mode successful
+- 253 RSS stories + 44 Airtable submissions = 297 total
+- Classification distributed across all 7 sections
+- Generated 84,038 characters of HTML
+- Preview saved to `drafts/dnr-2025-12-16.html`
+
+**Claude skill created:**
+- `.claude/skills/dnr-automation/SKILL.md` - Full documentation and commands
 
 ---
 
@@ -241,13 +270,18 @@ Stories are wrapped in `<ul>` tags within each section. Link colors inherit from
 - ✅ Completed: Category/topic pattern analysis
 - ✅ Completed: HTML format documentation
 - ✅ Completed: Editorial rules documented
-- ✅ Completed: Airtable integration credentials
-- ⏳ In progress: Awaiting Mailchimp API key
-- 📋 Planned: Compile RSS feed URLs for major sources
-- 📋 Planned: Build Airtable integration
-- 📋 Planned: Build story classification system
-- 📋 Planned: Build Mailchimp API integration
-- 📋 Planned: Create Claude skill for DNR workflow
+- ✅ Completed: Airtable integration (PAT, Base, Table, View IDs)
+- ✅ Completed: Mailchimp integration (API key, List ID)
+- ✅ Completed: Anthropic API integration (Claude Haiku for classification)
+- ✅ Completed: RSS feed URLs compiled (75+ sources)
+- ✅ Completed: Airtable fetcher module
+- ✅ Completed: RSS fetcher module
+- ✅ Completed: Story classifier module
+- ✅ Completed: HTML formatter module
+- ✅ Completed: Main pipeline script
+- ✅ Completed: Claude skill for DNR workflow
+
+**Ready for production use.** Run `python src/main.py` to create a Mailchimp draft.
 
 ## Key files
 
@@ -256,25 +290,35 @@ Stories are wrapped in `<ul>` tags within each section. Link colors inherit from
 | `PROJECT_LOG.md` | Development log and documentation |
 | `README.md` | Project overview and usage |
 | `requirements.txt` | Python dependencies |
+| `.env` | Environment variables (API keys - not in git) |
 | `.env.example` | Environment variable template |
+| `src/main.py` | Main pipeline orchestrator |
+| `src/rss_fetcher.py` | RSS feed collection module |
+| `src/airtable_fetcher.py` | Airtable submissions module |
+| `src/classifier.py` | Claude API story classification |
+| `src/html_formatter.py` | HTML newsletter generation |
+| `src/test_connections.py` | API connection testing utility |
+| `config/rss_feeds.json` | RSS feed configuration (75+ sources) |
 | `history/*.csv` | Historical newsletter data (7 category files) |
 | `history/dnr-template.html` | Mailchimp HTML template |
+| `drafts/` | Generated HTML previews |
+| `.claude/skills/dnr-automation/SKILL.md` | Claude Code skill documentation |
 
 ## Dependencies
 
-**Confirmed:**
-- Mailchimp Marketing API (for campaign creation)
-- feedparser (RSS parsing)
-- beautifulsoup4 (HTML parsing)
-- pandas (data analysis)
-- requests (HTTP requests)
-- python-dotenv (environment management)
-- schedule (optional, for automated runs)
+**Python packages (requirements.txt):**
+- pyairtable - Airtable API client
+- mailchimp-marketing - Mailchimp API client
+- anthropic - Claude API client
+- feedparser - RSS parsing
+- beautifulsoup4 - HTML parsing
+- requests - HTTP requests
+- python-dotenv - Environment management
 
-**Potential additions:**
-- Anthropic API or local LLM for story classification
-- Google News API or similar for discovery
-- Playwright (if scraping needed beyond RSS)
+**External APIs:**
+- Airtable API (reader/publisher submissions)
+- Mailchimp Marketing API (campaign creation)
+- Anthropic Claude API (story classification)
 
 ## Architecture decisions
 
