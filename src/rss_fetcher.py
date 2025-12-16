@@ -81,10 +81,11 @@ def fetch_all_feeds(hours_back: int = 24, priority_filter: Optional[int] = None)
     config = load_feed_config()
     all_articles = []
 
-    # Combine all feed categories
+    # Combine all feed categories (dynamic - gets all keys under "feeds")
     all_sources = []
-    for category in ["primary_sources", "regional_hyperlocal", "national_regional"]:
-        all_sources.extend(config["feeds"].get(category, []))
+    for category_name, sources in config["feeds"].items():
+        if isinstance(sources, list):
+            all_sources.extend(sources)
 
     for source in all_sources:
         # Apply priority filter
@@ -132,9 +133,11 @@ def test_feeds():
 
     results = {"working": [], "failed": [], "no_feed": []}
 
+    # Combine all feed categories (dynamic)
     all_sources = []
-    for category in ["primary_sources", "regional_hyperlocal", "national_regional"]:
-        all_sources.extend(config["feeds"].get(category, []))
+    for category_name, sources in config["feeds"].items():
+        if isinstance(sources, list):
+            all_sources.extend(sources)
 
     for source in all_sources:
         name = source["name"]

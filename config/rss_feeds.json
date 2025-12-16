@@ -2,16 +2,14 @@
   "metadata": {
     "description": "RSS feed URLs for NJ news sources used in Daily News Roundup",
     "last_updated": "2025-12-16",
-    "notes": "Some outlets may not have RSS feeds; those are marked with null URLs"
+    "notes": "Comprehensive list of NJ news outlets. Some may not have RSS feeds (marked null)."
   },
   "feeds": {
-    "primary_sources": [
+    "primary_statewide": [
       {
         "name": "NJ.com",
         "domain": "nj.com",
         "rss_url": "https://www.nj.com/arc/outboundfeeds/rss/?outputType=xml",
-        "rss_news": "https://www.nj.com/arc/outboundfeeds/rss/category/news/?outputType=xml",
-        "rss_politics": "https://www.nj.com/arc/outboundfeeds/rss/category/politics/?outputType=xml",
         "priority": 1
       },
       {
@@ -33,29 +31,16 @@
         "priority": 1
       },
       {
-        "name": "NorthJersey.com",
-        "domain": "northjersey.com",
-        "rss_url": "https://www.northjersey.com/arc/outboundfeeds/rss/?outputType=xml",
+        "name": "New Jersey Monthly",
+        "domain": "njmonthly.com",
+        "rss_url": "https://njmonthly.com/feed/",
         "priority": 1
       },
       {
-        "name": "Press of Atlantic City",
-        "domain": "pressofatlanticcity.com",
-        "rss_url": "https://pressofatlanticcity.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
+        "name": "NJ Biz",
+        "domain": "njbiz.com",
+        "rss_url": "https://njbiz.com/feed/",
         "priority": 1
-      },
-      {
-        "name": "Asbury Park Press",
-        "domain": "app.com",
-        "rss_url": "https://www.app.com/arc/outboundfeeds/rss/?outputType=xml",
-        "priority": 1
-      },
-      {
-        "name": "TAPinto",
-        "domain": "tapinto.net",
-        "rss_url": null,
-        "notes": "TAPinto is a network; may need to scrape or use individual town feeds",
-        "priority": 2
       },
       {
         "name": "ROI-NJ",
@@ -64,26 +49,372 @@
         "priority": 1
       },
       {
-        "name": "WHYY",
-        "domain": "whyy.org",
-        "rss_url": "https://whyy.org/feed/",
-        "rss_nj": "https://whyy.org/categories/new-jersey/feed/",
-        "priority": 1
+        "name": "NJ Advance Media",
+        "domain": "njadvancemedia.com",
+        "rss_url": null,
+        "priority": 2
       }
     ],
-    "regional_hyperlocal": [
+    "regional_dailies": [
       {
-        "name": "70and73.com",
-        "domain": "70and73.com",
-        "rss_url": "https://www.70and73.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc",
-        "coverage": "South Jersey (Burlington/Camden)",
+        "name": "NorthJersey.com (Bergen Record)",
+        "domain": "northjersey.com",
+        "rss_url": "https://www.northjersey.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "North Jersey",
+        "priority": 1
+      },
+      {
+        "name": "Press of Atlantic City",
+        "domain": "pressofatlanticcity.com",
+        "rss_url": "https://pressofatlanticcity.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
+        "coverage": "South Jersey/Shore",
+        "priority": 1
+      },
+      {
+        "name": "Asbury Park Press",
+        "domain": "app.com",
+        "rss_url": "https://www.app.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "Shore/Monmouth/Ocean",
+        "priority": 1
+      },
+      {
+        "name": "MyCentralJersey",
+        "domain": "mycentraljersey.com",
+        "rss_url": "https://www.mycentraljersey.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "Central Jersey",
+        "priority": 1
+      },
+      {
+        "name": "Daily Record (Morris)",
+        "domain": "dailyrecord.com",
+        "rss_url": "https://www.dailyrecord.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "Morris County",
+        "priority": 1
+      },
+      {
+        "name": "Burlington County Times",
+        "domain": "burlingtoncountytimes.com",
+        "rss_url": "https://www.burlingtoncountytimes.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "Burlington County",
         "priority": 2
       },
+      {
+        "name": "Courier-Post",
+        "domain": "courierpostonline.com",
+        "rss_url": "https://www.courierpostonline.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "South Jersey",
+        "priority": 2
+      },
+      {
+        "name": "Daily Journal (Vineland)",
+        "domain": "thedailyjournal.com",
+        "rss_url": "https://www.thedailyjournal.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "Cumberland County",
+        "priority": 2
+      },
+      {
+        "name": "Trentonian",
+        "domain": "trentonian.com",
+        "rss_url": "https://www.trentonian.com/feed/",
+        "coverage": "Trenton/Mercer",
+        "priority": 2
+      },
+      {
+        "name": "NJ Herald",
+        "domain": "njherald.com",
+        "rss_url": "https://www.njherald.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "Sussex/Warren",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_essex": [
+      {
+        "name": "Montclair Local",
+        "domain": "montclairlocal.news",
+        "rss_url": "https://montclairlocal.news/feed/",
+        "coverage": "Montclair",
+        "priority": 2
+      },
+      {
+        "name": "Village Green (SOMA)",
+        "domain": "villagegreennj.com",
+        "rss_url": "https://villagegreennj.com/feed/",
+        "coverage": "South Orange/Maplewood",
+        "priority": 2
+      },
+      {
+        "name": "Baristanet",
+        "domain": "baristanet.com",
+        "rss_url": "https://baristanet.com/feed/",
+        "coverage": "Montclair area",
+        "priority": 2
+      },
+      {
+        "name": "Newark News",
+        "domain": "newarknewstoday.com",
+        "rss_url": null,
+        "coverage": "Newark",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Newark",
+        "domain": "tapinto.net/towns/newark",
+        "rss_url": "https://www.tapinto.net/towns/newark/rss",
+        "coverage": "Newark",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Montclair",
+        "domain": "tapinto.net/towns/montclair",
+        "rss_url": "https://www.tapinto.net/towns/montclair/rss",
+        "coverage": "Montclair",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Bloomfield",
+        "domain": "tapinto.net/towns/bloomfield",
+        "rss_url": "https://www.tapinto.net/towns/bloomfield/rss",
+        "coverage": "Bloomfield",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_bergen": [
+      {
+        "name": "Pascack Press",
+        "domain": "pascackpress.com",
+        "rss_url": null,
+        "coverage": "Pascack Valley",
+        "priority": 3
+      },
+      {
+        "name": "TAPinto Ridgewood",
+        "domain": "tapinto.net/towns/ridgewood",
+        "rss_url": "https://www.tapinto.net/towns/ridgewood/rss",
+        "coverage": "Ridgewood",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Teaneck",
+        "domain": "tapinto.net/towns/teaneck",
+        "rss_url": "https://www.tapinto.net/towns/teaneck/rss",
+        "coverage": "Teaneck",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Hackensack",
+        "domain": "tapinto.net/towns/hackensack",
+        "rss_url": "https://www.tapinto.net/towns/hackensack/rss",
+        "coverage": "Hackensack",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_hudson": [
+      {
+        "name": "Hudson Reporter",
+        "domain": "hudsonreporter.com",
+        "rss_url": "https://hudsonreporter.com/feed/",
+        "coverage": "Hudson County",
+        "priority": 2
+      },
+      {
+        "name": "Jersey City Times",
+        "domain": "jerseycitytimes.com",
+        "rss_url": null,
+        "coverage": "Jersey City",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Jersey City",
+        "domain": "tapinto.net/towns/jersey-city",
+        "rss_url": "https://www.tapinto.net/towns/jersey-city/rss",
+        "coverage": "Jersey City",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Hoboken",
+        "domain": "tapinto.net/towns/hoboken",
+        "rss_url": "https://www.tapinto.net/towns/hoboken/rss",
+        "coverage": "Hoboken",
+        "priority": 2
+      },
+      {
+        "name": "Jersey Digs",
+        "domain": "jerseydigs.com",
+        "rss_url": "https://jerseydigs.com/feed/",
+        "coverage": "Development/Real Estate",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_morris": [
       {
         "name": "Morristown Green",
         "domain": "morristowngreen.com",
         "rss_url": "https://morristowngreen.com/feed/",
-        "coverage": "Morris County",
+        "coverage": "Morristown area",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Morristown",
+        "domain": "tapinto.net/towns/morristown",
+        "rss_url": "https://www.tapinto.net/towns/morristown/rss",
+        "coverage": "Morristown",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Madison",
+        "domain": "tapinto.net/towns/madison",
+        "rss_url": "https://www.tapinto.net/towns/madison/rss",
+        "coverage": "Madison",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Chatham",
+        "domain": "tapinto.net/towns/chatham",
+        "rss_url": "https://www.tapinto.net/towns/chatham/rss",
+        "coverage": "Chatham",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_union": [
+      {
+        "name": "TAPinto Westfield",
+        "domain": "tapinto.net/towns/westfield",
+        "rss_url": "https://www.tapinto.net/towns/westfield/rss",
+        "coverage": "Westfield",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Cranford",
+        "domain": "tapinto.net/towns/cranford",
+        "rss_url": "https://www.tapinto.net/towns/cranford/rss",
+        "coverage": "Cranford",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Summit",
+        "domain": "tapinto.net/towns/summit",
+        "rss_url": "https://www.tapinto.net/towns/summit/rss",
+        "coverage": "Summit",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Elizabeth",
+        "domain": "tapinto.net/towns/elizabeth",
+        "rss_url": "https://www.tapinto.net/towns/elizabeth/rss",
+        "coverage": "Elizabeth",
+        "priority": 2
+      },
+      {
+        "name": "Union News Daily",
+        "domain": "unionnewsdaily.com",
+        "rss_url": "https://unionnewsdaily.com/feed/",
+        "coverage": "Union County",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_mercer": [
+      {
+        "name": "MercerMe",
+        "domain": "mercerme.com",
+        "rss_url": "https://mercerme.com/feed/",
+        "coverage": "Mercer County",
+        "priority": 2
+      },
+      {
+        "name": "Princeton Info",
+        "domain": "princetoninfo.com",
+        "rss_url": "https://princetoninfo.com/feed/",
+        "coverage": "Princeton area",
+        "priority": 2
+      },
+      {
+        "name": "Planet Princeton",
+        "domain": "planetprinceton.com",
+        "rss_url": "https://planetprinceton.com/feed/",
+        "coverage": "Princeton",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Trenton",
+        "domain": "tapinto.net/towns/trenton",
+        "rss_url": "https://www.tapinto.net/towns/trenton/rss",
+        "coverage": "Trenton",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_middlesex": [
+      {
+        "name": "TAPinto New Brunswick",
+        "domain": "tapinto.net/towns/new-brunswick",
+        "rss_url": "https://www.tapinto.net/towns/new-brunswick/rss",
+        "coverage": "New Brunswick",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Edison",
+        "domain": "tapinto.net/towns/edison",
+        "rss_url": "https://www.tapinto.net/towns/edison/rss",
+        "coverage": "Edison",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Perth Amboy",
+        "domain": "tapinto.net/towns/perth-amboy",
+        "rss_url": "https://www.tapinto.net/towns/perth-amboy/rss",
+        "coverage": "Perth Amboy",
+        "priority": 2
+      },
+      {
+        "name": "New Brunswick Today",
+        "domain": "newbrunswicktoday.com",
+        "rss_url": "https://newbrunswicktoday.com/feed/",
+        "coverage": "New Brunswick",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_monmouth_ocean": [
+      {
+        "name": "Jersey Shore Online",
+        "domain": "jerseyshoreonline.com",
+        "rss_url": "https://www.jerseyshoreonline.com/feed/",
+        "coverage": "Jersey Shore",
+        "priority": 2
+      },
+      {
+        "name": "Shorebeat (Brick/Toms River)",
+        "domain": "shorebeat.com",
+        "rss_url": "https://shorebeat.com/feed/",
+        "coverage": "Ocean County Shore",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Red Bank",
+        "domain": "tapinto.net/towns/red-bank",
+        "rss_url": "https://www.tapinto.net/towns/red-bank/rss",
+        "coverage": "Red Bank",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Long Branch",
+        "domain": "tapinto.net/towns/long-branch",
+        "rss_url": "https://www.tapinto.net/towns/long-branch/rss",
+        "coverage": "Long Branch",
+        "priority": 2
+      },
+      {
+        "name": "TAPinto Freehold",
+        "domain": "tapinto.net/towns/freehold",
+        "rss_url": "https://www.tapinto.net/towns/freehold/rss",
+        "coverage": "Freehold",
+        "priority": 2
+      }
+    ],
+    "hyperlocal_south_jersey": [
+      {
+        "name": "70and73.com",
+        "domain": "70and73.com",
+        "rss_url": "https://www.70and73.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc",
+        "coverage": "Burlington/Camden",
         "priority": 2
       },
       {
@@ -94,53 +425,100 @@
         "priority": 2
       },
       {
-        "name": "Jersey Digs",
-        "domain": "jerseydigs.com",
-        "rss_url": "https://jerseydigs.com/feed/",
-        "coverage": "Real estate/development",
+        "name": "Route 40",
+        "domain": "rtforty.com",
+        "rss_url": "https://rtforty.com/feed/",
+        "coverage": "Atlantic County",
         "priority": 2
       },
       {
-        "name": "MercerMe",
-        "domain": "mercerme.com",
-        "rss_url": "https://mercerme.com/feed/",
-        "coverage": "Mercer County",
+        "name": "Cape May County Herald",
+        "domain": "capemaycountyherald.com",
+        "rss_url": "https://www.capemaycountyherald.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc",
+        "coverage": "Cape May County",
         "priority": 2
       },
       {
-        "name": "NJ Biz",
-        "domain": "njbiz.com",
-        "rss_url": "https://njbiz.com/feed/",
-        "coverage": "Business",
+        "name": "TAPinto Cherry Hill",
+        "domain": "tapinto.net/towns/cherry-hill",
+        "rss_url": "https://www.tapinto.net/towns/cherry-hill/rss",
+        "coverage": "Cherry Hill",
         "priority": 2
       },
       {
-        "name": "New Jersey Monthly",
-        "domain": "njmonthly.com",
-        "rss_url": "https://njmonthly.com/feed/",
-        "coverage": "Statewide magazine",
+        "name": "TAPinto Moorestown",
+        "domain": "tapinto.net/towns/moorestown",
+        "rss_url": "https://www.tapinto.net/towns/moorestown/rss",
+        "coverage": "Moorestown",
+        "priority": 2
+      }
+    ],
+    "specialty_outlets": [
+      {
+        "name": "NJ Arts",
+        "domain": "njarts.net",
+        "rss_url": "https://www.njarts.net/feed/",
+        "coverage": "Arts & Culture",
         "priority": 2
       },
       {
-        "name": "MyCentralJersey",
-        "domain": "mycentraljersey.com",
-        "rss_url": "https://www.mycentraljersey.com/arc/outboundfeeds/rss/?outputType=xml",
-        "coverage": "Central Jersey",
+        "name": "NJ Cannabis Insider",
+        "domain": "njcannabisinsider.nj.com",
+        "rss_url": null,
+        "coverage": "Cannabis industry",
         "priority": 2
       },
       {
-        "name": "Gothamist",
+        "name": "NJ Education Report",
+        "domain": "njedreport.com",
+        "rss_url": "https://njedreport.com/feed/",
+        "coverage": "Education",
+        "priority": 2
+      },
+      {
+        "name": "InsiderNJ",
+        "domain": "insidernj.com",
+        "rss_url": "https://www.insidernj.com/feed/",
+        "coverage": "Politics",
+        "priority": 2
+      },
+      {
+        "name": "NJ Indy",
+        "domain": "njindy.com",
+        "rss_url": "https://njindy.com/feed/",
+        "coverage": "General news",
+        "priority": 2
+      },
+      {
+        "name": "NJ Sportsbiz",
+        "domain": "njsportsbiz.com",
+        "rss_url": null,
+        "coverage": "Sports business",
+        "priority": 3
+      }
+    ],
+    "public_media": [
+      {
+        "name": "WHYY",
+        "domain": "whyy.org",
+        "rss_url": "https://whyy.org/feed/",
+        "rss_nj": "https://whyy.org/categories/new-jersey/feed/",
+        "coverage": "Philadelphia/South Jersey",
+        "priority": 1
+      },
+      {
+        "name": "WNYC/Gothamist",
         "domain": "gothamist.com",
         "rss_url": "https://gothamist.com/feed",
-        "coverage": "NYC metro including NJ",
+        "coverage": "NYC metro",
         "priority": 2
       },
       {
-        "name": "Patch NJ",
-        "domain": "patch.com",
+        "name": "NJ PBS",
+        "domain": "njtvonline.org",
         "rss_url": null,
-        "notes": "Patch is a network; need to use specific town feeds or API",
-        "priority": 3
+        "coverage": "Statewide",
+        "priority": 2
       }
     ],
     "national_regional": [
@@ -148,7 +526,6 @@
         "name": "The Inquirer",
         "domain": "inquirer.com",
         "rss_url": "https://www.inquirer.com/arcio/rss/",
-        "rss_nj": "https://www.inquirer.com/arcio/rss/category/news/new-jersey/",
         "coverage": "Philadelphia/South Jersey",
         "priority": 2
       },
@@ -158,42 +535,96 @@
         "rss_url": "https://www.nbcnewyork.com/news/local/?rss=y",
         "coverage": "NYC metro",
         "priority": 3
+      },
+      {
+        "name": "CBS New York",
+        "domain": "cbsnews.com/newyork",
+        "rss_url": "https://www.cbsnews.com/newyork/latest/rss/main",
+        "coverage": "NYC metro",
+        "priority": 3
+      },
+      {
+        "name": "ABC 7 NY",
+        "domain": "abc7ny.com",
+        "rss_url": null,
+        "coverage": "NYC metro",
+        "priority": 3
+      },
+      {
+        "name": "News 12 NJ",
+        "domain": "news12.com/newjersey",
+        "rss_url": null,
+        "coverage": "NJ cable news",
+        "priority": 2
+      }
+    ],
+    "ethnic_community_media": [
+      {
+        "name": "NJ Hispano",
+        "domain": "njhispano.com",
+        "rss_url": null,
+        "coverage": "Latino community",
+        "priority": 2
+      },
+      {
+        "name": "Reporte Hispano",
+        "domain": "reportehispano.com",
+        "rss_url": null,
+        "coverage": "Latino community",
+        "priority": 2
+      },
+      {
+        "name": "India Abroad",
+        "domain": "indiaabroad-digital.com",
+        "rss_url": null,
+        "coverage": "South Asian community",
+        "priority": 3
+      },
+      {
+        "name": "Korea Daily NJ",
+        "domain": "koreadaily.com",
+        "rss_url": null,
+        "coverage": "Korean community",
+        "priority": 3
       }
     ]
   },
   "category_keywords": {
     "top_stories": [
-      "breaking", "major", "investigation", "exclusive", "developing"
+      "breaking", "major", "investigation", "exclusive", "developing",
+      "indictment", "arrest", "shooting", "fire", "crash", "death"
     ],
     "politics": [
       "governor", "murphy", "legislature", "senate", "assembly", "election",
       "vote", "campaign", "democrat", "republican", "mayor", "council",
-      "bill", "law", "regulation", "court", "judge", "police", "attorney general"
+      "bill", "law", "regulation", "court", "judge", "police", "attorney general",
+      "prosecutor", "indictment", "corruption", "ethics", "budget", "tax"
     ],
     "housing": [
       "housing", "affordable", "rent", "apartment", "development", "zoning",
       "real estate", "mortgage", "homeless", "eviction", "landlord", "tenant",
-      "construction", "building", "redevelopment"
+      "construction", "building", "redevelopment", "warehouse", "condo"
     ],
     "education": [
       "school", "student", "teacher", "education", "university", "college",
       "district", "board of education", "superintendent", "curriculum",
-      "tuition", "graduation", "campus"
+      "tuition", "graduation", "campus", "charter", "voucher", "STEM"
     ],
     "health": [
       "health", "hospital", "covid", "vaccine", "medical", "doctor", "nurse",
       "patient", "disease", "mental health", "opioid", "drug", "treatment",
-      "insurance", "medicaid", "medicare"
+      "insurance", "medicaid", "medicare", "addiction", "overdose"
     ],
     "environment": [
       "climate", "environment", "clean energy", "solar", "wind", "offshore",
       "pollution", "water", "air quality", "recycling", "plastic", "bag ban",
-      "weather", "storm", "flood", "superfund", "EPA", "DEP"
+      "weather", "storm", "flood", "superfund", "EPA", "DEP", "PFAS",
+      "electric vehicle", "EV", "carbon", "emissions"
     ],
     "lastly": [
       "arts", "culture", "sports", "entertainment", "restaurant", "food",
       "event", "festival", "community", "charity", "nonprofit", "award",
-      "anniversary", "celebration"
+      "anniversary", "celebration", "museum", "theater", "music", "concert"
     ]
   }
 }
