@@ -1,0 +1,199 @@
+{
+  "metadata": {
+    "description": "RSS feed URLs for NJ news sources used in Daily News Roundup",
+    "last_updated": "2025-12-16",
+    "notes": "Some outlets may not have RSS feeds; those are marked with null URLs"
+  },
+  "feeds": {
+    "primary_sources": [
+      {
+        "name": "NJ.com",
+        "domain": "nj.com",
+        "rss_url": "https://www.nj.com/arc/outboundfeeds/rss/?outputType=xml",
+        "rss_news": "https://www.nj.com/arc/outboundfeeds/rss/category/news/?outputType=xml",
+        "rss_politics": "https://www.nj.com/arc/outboundfeeds/rss/category/politics/?outputType=xml",
+        "priority": 1
+      },
+      {
+        "name": "NJ Spotlight News",
+        "domain": "njspotlightnews.org",
+        "rss_url": "https://www.njspotlightnews.org/feed/",
+        "priority": 1
+      },
+      {
+        "name": "NJ Monitor",
+        "domain": "newjerseymonitor.com",
+        "rss_url": "https://newjerseymonitor.com/feed/",
+        "priority": 1
+      },
+      {
+        "name": "NJ Globe",
+        "domain": "newjerseyglobe.com",
+        "rss_url": "https://newjerseyglobe.com/feed/",
+        "priority": 1
+      },
+      {
+        "name": "NorthJersey.com",
+        "domain": "northjersey.com",
+        "rss_url": "https://www.northjersey.com/arc/outboundfeeds/rss/?outputType=xml",
+        "priority": 1
+      },
+      {
+        "name": "Press of Atlantic City",
+        "domain": "pressofatlanticcity.com",
+        "rss_url": "https://pressofatlanticcity.com/search/?f=rss&t=article&c=news&l=50&s=start_time&sd=desc",
+        "priority": 1
+      },
+      {
+        "name": "Asbury Park Press",
+        "domain": "app.com",
+        "rss_url": "https://www.app.com/arc/outboundfeeds/rss/?outputType=xml",
+        "priority": 1
+      },
+      {
+        "name": "TAPinto",
+        "domain": "tapinto.net",
+        "rss_url": null,
+        "notes": "TAPinto is a network; may need to scrape or use individual town feeds",
+        "priority": 2
+      },
+      {
+        "name": "ROI-NJ",
+        "domain": "roi-nj.com",
+        "rss_url": "https://www.roi-nj.com/feed/",
+        "priority": 1
+      },
+      {
+        "name": "WHYY",
+        "domain": "whyy.org",
+        "rss_url": "https://whyy.org/feed/",
+        "rss_nj": "https://whyy.org/categories/new-jersey/feed/",
+        "priority": 1
+      }
+    ],
+    "regional_hyperlocal": [
+      {
+        "name": "70and73.com",
+        "domain": "70and73.com",
+        "rss_url": "https://www.70and73.com/search/?f=rss&t=article&l=50&s=start_time&sd=desc",
+        "coverage": "South Jersey (Burlington/Camden)",
+        "priority": 2
+      },
+      {
+        "name": "Morristown Green",
+        "domain": "morristowngreen.com",
+        "rss_url": "https://morristowngreen.com/feed/",
+        "coverage": "Morris County",
+        "priority": 2
+      },
+      {
+        "name": "NJ Pen",
+        "domain": "njpen.com",
+        "rss_url": "https://www.njpen.com/feed/",
+        "coverage": "Camden County",
+        "priority": 2
+      },
+      {
+        "name": "Jersey Digs",
+        "domain": "jerseydigs.com",
+        "rss_url": "https://jerseydigs.com/feed/",
+        "coverage": "Real estate/development",
+        "priority": 2
+      },
+      {
+        "name": "MercerMe",
+        "domain": "mercerme.com",
+        "rss_url": "https://mercerme.com/feed/",
+        "coverage": "Mercer County",
+        "priority": 2
+      },
+      {
+        "name": "NJ Biz",
+        "domain": "njbiz.com",
+        "rss_url": "https://njbiz.com/feed/",
+        "coverage": "Business",
+        "priority": 2
+      },
+      {
+        "name": "New Jersey Monthly",
+        "domain": "njmonthly.com",
+        "rss_url": "https://njmonthly.com/feed/",
+        "coverage": "Statewide magazine",
+        "priority": 2
+      },
+      {
+        "name": "MyCentralJersey",
+        "domain": "mycentraljersey.com",
+        "rss_url": "https://www.mycentraljersey.com/arc/outboundfeeds/rss/?outputType=xml",
+        "coverage": "Central Jersey",
+        "priority": 2
+      },
+      {
+        "name": "Gothamist",
+        "domain": "gothamist.com",
+        "rss_url": "https://gothamist.com/feed",
+        "coverage": "NYC metro including NJ",
+        "priority": 2
+      },
+      {
+        "name": "Patch NJ",
+        "domain": "patch.com",
+        "rss_url": null,
+        "notes": "Patch is a network; need to use specific town feeds or API",
+        "priority": 3
+      }
+    ],
+    "national_regional": [
+      {
+        "name": "The Inquirer",
+        "domain": "inquirer.com",
+        "rss_url": "https://www.inquirer.com/arcio/rss/",
+        "rss_nj": "https://www.inquirer.com/arcio/rss/category/news/new-jersey/",
+        "coverage": "Philadelphia/South Jersey",
+        "priority": 2
+      },
+      {
+        "name": "NBC New York",
+        "domain": "nbcnewyork.com",
+        "rss_url": "https://www.nbcnewyork.com/news/local/?rss=y",
+        "coverage": "NYC metro",
+        "priority": 3
+      }
+    ]
+  },
+  "category_keywords": {
+    "top_stories": [
+      "breaking", "major", "investigation", "exclusive", "developing"
+    ],
+    "politics": [
+      "governor", "murphy", "legislature", "senate", "assembly", "election",
+      "vote", "campaign", "democrat", "republican", "mayor", "council",
+      "bill", "law", "regulation", "court", "judge", "police", "attorney general"
+    ],
+    "housing": [
+      "housing", "affordable", "rent", "apartment", "development", "zoning",
+      "real estate", "mortgage", "homeless", "eviction", "landlord", "tenant",
+      "construction", "building", "redevelopment"
+    ],
+    "education": [
+      "school", "student", "teacher", "education", "university", "college",
+      "district", "board of education", "superintendent", "curriculum",
+      "tuition", "graduation", "campus"
+    ],
+    "health": [
+      "health", "hospital", "covid", "vaccine", "medical", "doctor", "nurse",
+      "patient", "disease", "mental health", "opioid", "drug", "treatment",
+      "insurance", "medicaid", "medicare"
+    ],
+    "environment": [
+      "climate", "environment", "clean energy", "solar", "wind", "offshore",
+      "pollution", "water", "air quality", "recycling", "plastic", "bag ban",
+      "weather", "storm", "flood", "superfund", "EPA", "DEP"
+    ],
+    "lastly": [
+      "arts", "culture", "sports", "entertainment", "restaurant", "food",
+      "event", "festival", "community", "charity", "nonprofit", "award",
+      "anniversary", "celebration"
+    ]
+  }
+}
