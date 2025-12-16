@@ -15,7 +15,7 @@
       {
         "name": "NJ Spotlight News",
         "domain": "njspotlightnews.org",
-        "rss_url": "https://www.njspotlightnews.org/feed/rss_full/",
+        "rss_url": "https://www.njspotlightnews.org/feed/",
         "priority": 1
       },
       {
