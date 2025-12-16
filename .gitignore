@@ -1,0 +1,42 @@
+# Environment and secrets
+.env
+*.env
+credentials.json
+*_credentials.json
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Large data files (uncomment if CSVs get too big for repo)
+# history/*.csv
+
+# Temporary files
+*.tmp
+*.temp
+drafts/
