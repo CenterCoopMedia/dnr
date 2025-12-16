@@ -36,13 +36,28 @@ from classifier import classify_stories_batch, SECTIONS
 from html_formatter import build_newsletter, preview_newsletter, count_stories
 from rss_fetcher import fetch_all_feeds
 
+# Optional Playwright import (for sites with broken RSS)
+try:
+    from playwright_fetcher import fetch_all_playwright_sources
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
 
-def fetch_all_stories(hours_back: int = 24) -> list[dict]:
+# Optional URL enrichment via Gemini
+try:
+    from url_enricher import enrich_stories_batch
+    ENRICHMENT_AVAILABLE = True
+except ImportError:
+    ENRICHMENT_AVAILABLE = False
+
+
+def fetch_all_stories(hours_back: int = 24, include_playwright: bool = False) -> list[dict]:
     """
-    Fetch stories from all sources (RSS + Airtable).
+    Fetch stories from all sources (RSS + Airtable + optionally Playwright).
 
     Args:
         hours_back: How many hours back to look for RSS stories
+        include_playwright: Whether to fetch from Playwright sources (slower)
 
     Returns:
         Combined list of stories from all sources
@@ -51,12 +66,20 @@ def fetch_all_stories(hours_back: int = 24) -> list[dict]:
     rss_stories = fetch_all_feeds(hours_back=hours_back, priority_filter=2)
     print(f"   Found {len(rss_stories)} RSS stories")
 
+    # Optionally fetch from Playwright sources (sites with broken RSS)
+    playwright_stories = []
+    if include_playwright and PLAYWRIGHT_AVAILABLE:
+        playwright_stories = fetch_all_playwright_sources(hours_back=hours_back)
+        print(f"   Found {len(playwright_stories)} Playwright stories")
+    elif include_playwright and not PLAYWRIGHT_AVAILABLE:
+        print("   Playwright not available (install with: pip install playwright)")
+
     print("\n📋 Fetching submissions from Airtable...")
     airtable_stories = fetch_submissions(days_back=7)
     print(f"   Found {len(airtable_stories)} Airtable submissions")
 
-    # Combine
-    all_stories = rss_stories + airtable_stories
+    # Combine all sources
+    all_stories = rss_stories + playwright_stories + airtable_stories
     print(f"\n📊 Total stories to process: {len(all_stories)}")
 
     return all_stories
@@ -254,7 +277,10 @@ def run_pipeline(
     hours_back: int = 24,
     preview_only: bool = False,
     dry_run: bool = False,
-    output_dir: Optional[str] = None
+    output_dir: Optional[str] = None,
+    include_playwright: bool = False,
+    enrich_stories: bool = False,
+    enrich_max: int = 20
 ) -> Optional[str]:
     """
     Run the full newsletter generation pipeline.
@@ -264,6 +290,9 @@ def run_pipeline(
         preview_only: If True, generate HTML but don't create Mailchimp draft
         dry_run: If True, just show counts without generating
         output_dir: Directory for preview HTML output
+        include_playwright: If True, also fetch from Playwright sources (slower)
+        enrich_stories: If True, enrich stories with Gemini URL context
+        enrich_max: Maximum stories to enrich (to control API costs)
 
     Returns:
         Campaign ID if created, preview path if preview_only, None otherwise
@@ -272,10 +301,15 @@ def run_pipeline(
     print("🗞️  DAILY NEWS ROUNDUP - PIPELINE")
     print("=" * 60)
     print(f"   Date: {datetime.now().strftime('%A, %B %d, %Y')}")
-    print(f"   Mode: {'Dry run' if dry_run else 'Preview' if preview_only else 'Full pipeline'}")
+    mode_str = 'Dry run' if dry_run else 'Preview' if preview_only else 'Full pipeline'
+    if include_playwright:
+        mode_str += " + Playwright"
+    if enrich_stories:
+        mode_str += " + Enrichment"
+    print(f"   Mode: {mode_str}")
 
     # Step 1: Fetch stories
-    stories = fetch_all_stories(hours_back=hours_back)
+    stories = fetch_all_stories(hours_back=hours_back, include_playwright=include_playwright)
 
     if not stories:
         print("\n⚠️  No stories found!")
@@ -284,6 +318,12 @@ def run_pipeline(
     if dry_run:
         print("\n📊 Dry run complete - story counts only")
         return None
+
+    # Optional: Enrich stories with URL context
+    if enrich_stories and ENRICHMENT_AVAILABLE:
+        stories = enrich_stories_batch(stories, max_stories=enrich_max)
+    elif enrich_stories and not ENRICHMENT_AVAILABLE:
+        print("   Enrichment not available (install google-generativeai)")
 
     # Step 2: Classify
     classified = classify_all_stories(stories)
@@ -343,6 +383,12 @@ def main():
                         help="Hours back to look for RSS stories (default: 24)")
     parser.add_argument("--output", type=str,
                         help="Output directory for preview HTML")
+    parser.add_argument("--playwright", action="store_true",
+                        help="Include Playwright sources (slower, for paywalled/broken RSS sites)")
+    parser.add_argument("--enrich", action="store_true",
+                        help="Enrich stories with Gemini URL context (uses API credits)")
+    parser.add_argument("--enrich-max", type=int, default=20,
+                        help="Max stories to enrich (default: 20)")
 
     args = parser.parse_args()
 
@@ -350,7 +396,10 @@ def main():
         hours_back=args.hours,
         preview_only=args.preview,
         dry_run=args.dry_run,
-        output_dir=args.output
+        output_dir=args.output,
+        include_playwright=args.playwright,
+        enrich_stories=args.enrich,
+        enrich_max=args.enrich_max
     )
 
     if result:

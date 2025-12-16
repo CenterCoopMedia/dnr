@@ -5,8 +5,33 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
 
 import feedparser
+
+
+def transform_url(url: str, source_name: str) -> str:
+    """
+    Transform URLs for paywall bypass or other fixes.
+
+    Args:
+        url: Original article URL
+        source_name: Name of the source
+
+    Returns:
+        Transformed URL (or original if no transform needed)
+    """
+    # NJ.com: Add ?outputType=amp to bypass paywall
+    if "nj.com" in url.lower() and "outputType=amp" not in url:
+        parsed = urlparse(url)
+        # Add amp parameter
+        if parsed.query:
+            new_url = f"{url}&outputType=amp"
+        else:
+            new_url = f"{url}?outputType=amp"
+        return new_url
+
+    return url
 
 
 def load_feed_config() -> dict:
@@ -48,9 +73,13 @@ def parse_feed(url: str, source_name: str, hours_back: int = 24) -> list[dict]:
             if published and published < cutoff:
                 continue
 
+            # Get and transform URL
+            raw_url = entry.get("link", "")
+            transformed_url = transform_url(raw_url, source_name)
+
             article = {
                 "title": entry.get("title", "").strip(),
-                "url": entry.get("link", ""),
+                "url": transformed_url,
                 "source": source_name,
                 "published": published.isoformat() if published else None,
                 "summary": entry.get("summary", "")[:500] if entry.get("summary") else None
