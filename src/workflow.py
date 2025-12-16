@@ -19,6 +19,7 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -37,6 +38,7 @@ load_dotenv()
 from main import run_pipeline, fetch_all_stories, classify_all_stories, deduplicate_stories, organize_by_section, create_mailchimp_draft
 from html_formatter import build_newsletter, count_stories
 from airtable_fetcher import update_submissions_batch, NEWSLETTER_TO_AIRTABLE
+import anthropic
 
 
 # Day of week constants
@@ -273,6 +275,169 @@ def review_airtable_submissions(classified_stories: list[dict]) -> list[dict]:
     return approved_updates
 
 
+def process_feedback(sections: dict, feedback: str, all_stories: list[dict]) -> dict:
+    """
+    Process natural language feedback to modify newsletter sections.
+
+    Args:
+        sections: Current sections dict
+        feedback: User's natural language feedback
+        all_stories: List of all classified stories for reference
+
+    Returns:
+        Modified sections dict
+    """
+    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    # Build a summary of current sections for context
+    sections_summary = []
+    for section_name, stories in sections.items():
+        if stories:
+            sections_summary.append(f"\n{section_name.upper()} ({len(stories)} stories):")
+            for i, story in enumerate(stories[:15], 1):  # Show first 15
+                headline = story.get("headline", story.get("title", ""))[:70]
+                source = story.get("source", "Unknown")
+                sections_summary.append(f"  {i}. {headline}... ({source})")
+            if len(stories) > 15:
+                sections_summary.append(f"  ... and {len(stories) - 15} more")
+
+    sections_text = "\n".join(sections_summary)
+
+    prompt = f"""You are helping edit a newsletter. Here are the current sections:
+
+{sections_text}
+
+The user's feedback is:
+"{feedback}"
+
+Based on this feedback, provide specific instructions in JSON format for how to modify the sections.
+Return a JSON object with an "actions" array. Each action can be:
+- {{"action": "move", "headline_contains": "partial headline text", "from_section": "section_name", "to_section": "section_name"}}
+- {{"action": "remove", "headline_contains": "partial headline text", "from_section": "section_name"}}
+- {{"action": "note", "message": "explanation if feedback can't be processed"}}
+
+Valid sections: top_stories, politics, housing, education, health, environment, lastly
+
+Example response:
+{{"actions": [{{"action": "move", "headline_contains": "NJ Transit", "from_section": "top_stories", "to_section": "politics"}}]}}
+
+Respond with JSON only, no explanation."""
+
+    try:
+        message = client.messages.create(
+            model="claude-3-haiku-20240307",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        response_text = message.content[0].text.strip()
+
+        # Parse JSON
+        if "```" in response_text:
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+
+        instructions = json.loads(response_text)
+
+        # Apply actions
+        actions_taken = []
+        for action in instructions.get("actions", []):
+            action_type = action.get("action")
+
+            if action_type == "note":
+                print(f"    Note: {action.get('message', '')}")
+                continue
+
+            headline_contains = action.get("headline_contains", "").lower()
+            from_section = action.get("from_section")
+            to_section = action.get("to_section")
+
+            if action_type == "move" and from_section and to_section:
+                # Find and move the story
+                for story in sections.get(from_section, [])[:]:
+                    headline = story.get("headline", story.get("title", "")).lower()
+                    if headline_contains in headline:
+                        sections[from_section].remove(story)
+                        if to_section not in sections:
+                            sections[to_section] = []
+                        sections[to_section].append(story)
+                        actions_taken.append(f"Moved '{headline_contains}...' from {from_section} to {to_section}")
+                        break
+
+            elif action_type == "remove" and from_section:
+                # Remove the story
+                for story in sections.get(from_section, [])[:]:
+                    headline = story.get("headline", story.get("title", "")).lower()
+                    if headline_contains in headline:
+                        sections[from_section].remove(story)
+                        actions_taken.append(f"Removed '{headline_contains}...' from {from_section}")
+                        break
+
+        if actions_taken:
+            for action_msg in actions_taken:
+                print(f"    ✓ {action_msg}")
+        else:
+            print("    No matching stories found for the requested changes.")
+
+        return sections
+
+    except Exception as e:
+        print(f"    Error processing feedback: {e}")
+        return sections
+
+
+def feedback_loop(sections: dict, all_stories: list[dict], preview_path: Path) -> tuple[dict, str]:
+    """
+    Interactive feedback loop for refining the newsletter.
+
+    Args:
+        sections: Current sections dict
+        all_stories: All classified stories
+        preview_path: Path to the HTML preview file
+
+    Returns:
+        Tuple of (modified sections dict, final HTML)
+    """
+    print("\n  You can now provide feedback to refine the newsletter.")
+    print("  Examples:")
+    print("    - 'Move the NJ Transit story to politics'")
+    print("    - 'Remove the carjacking story from top stories'")
+    print("    - 'Move all crime stories out of top stories'")
+    print("  Type 'done' when satisfied, 'refresh' to reload preview.\n")
+
+    while True:
+        feedback = input("  Feedback (or 'done'): ").strip()
+
+        if feedback.lower() == 'done' or feedback == '':
+            break
+
+        if feedback.lower() == 'refresh':
+            # Regenerate HTML and refresh browser
+            html = build_newsletter(sections)
+            with open(preview_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            webbrowser.open(f"file://{preview_path.absolute()}")
+            print("    Preview refreshed.")
+            continue
+
+        # Process the feedback
+        print("    Processing feedback...")
+        sections = process_feedback(sections, feedback, all_stories)
+
+        # Regenerate HTML
+        html = build_newsletter(sections)
+        with open(preview_path, "w", encoding="utf-8") as f:
+            f.write(html)
+
+        print("    Preview updated. Refresh your browser or type 'refresh'.")
+
+    # Final HTML
+    html = build_newsletter(sections)
+    return sections, html
+
+
 def run_workflow(
     include_playwright: bool = False,
     enrich_stories: bool = False,
@@ -426,8 +591,8 @@ def run_workflow(
         print(f"\nError generating HTML: {e}")
         return
 
-    # Step 6: Review
-    print_step(6, total_steps, "Review preview")
+    # Step 6: Review and refine
+    print_step(6, total_steps, "Review and refine preview")
 
     print("\nOpening preview in your browser...")
     webbrowser.open(f"file://{preview_path.absolute()}")
@@ -439,7 +604,8 @@ def run_workflow(
     print("  - No duplicate stories across sections")
     print("  - Top stories don't appear in other sections")
 
-    prompt_continue()
+    # Interactive feedback loop
+    sections, html = feedback_loop(sections, unique, preview_path)
 
     # Step 7: Approval and publish
     print_step(7, total_steps, "Create Mailchimp draft")
