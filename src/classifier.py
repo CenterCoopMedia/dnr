@@ -74,6 +74,34 @@ TOP_STORIES_EXCLUSION_KEYWORDS = [
     "explosion kills", "gas explosion",
     # Other incidents
     "drowning", "drowned", "missing person", "amber alert", "child abduction",
+    # High school sports
+    "high school football", "high school basketball", "high school soccer",
+    "high school baseball", "high school softball", "high school wrestling",
+    "high school hockey", "high school lacrosse", "high school track",
+    "varsity", "jv ", "junior varsity", "state championship", "tournament seeds",
+    "all-state", "all-county", "player of the week", "athlete of the week",
+    "game of the week", "final score", "box score", "playoff bracket",
+    # Shopping/gift guides/deals
+    "gift guide", "gift ideas", "holiday gifts", "best gifts", "top gifts",
+    "shopping guide", "deals", "discount", "sale prices", "black friday",
+    "cyber monday", "where to buy", "best places to buy", "shopping list",
+    "stocking stuffers",
+    # Lottery/gambling results
+    "lottery", "powerball", "mega millions", "winning numbers", "jackpot winner",
+    "lottery winner", "scratch-off", "pick-6", "pick 6", "cash5", "cash 5",
+    # Restaurant/food reviews
+    "restaurant review", "food review", "best restaurants", "best pizza",
+    "best bagels", "best diners", "best burgers", "best tacos", "best sushi",
+    "best ice cream", "best coffee", "where to eat", "new restaurant",
+    "restaurant opens", "restaurant closing", "michelin", "food critic",
+    "we tried", "taste test", "food ranking", "ranked the best",
+    # Expensive house sales (rich people real estate porn)
+    "most expensive home", "most expensive house", "mansion sells",
+    "mansion sold", "just sold for", "sells for $", "sold for $",
+    "million-dollar home", "multi-million", "luxury home sells",
+    "priciest home", "record-breaking sale", "celebrity home",
+    "stunning home", "dream home sold", "these homes just sold",
+    "houses that sold", "highest-priced",
 ]
 
 

@@ -124,7 +124,7 @@ def extract_source_from_url(url: str) -> str:
             "northjersey.com": "NorthJersey.com",
             "app.com": "Asbury Park Press",
             "pressofatlanticcity.com": "Press of Atlantic City",
-            "njbiz.com": "NJ Biz",
+            "njbiz.com": "NJBIZ",
             "roi-nj.com": "ROI-NJ",
             "trentonian.com": "Trentonian",
             "montclairlocal.news": "Montclair Local",
