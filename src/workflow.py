@@ -275,26 +275,95 @@ def review_airtable_submissions(classified_stories: list[dict]) -> list[dict]:
     return approved_updates
 
 
-def process_feedback(sections: dict, feedback: str, all_stories: list[dict]) -> dict:
+def process_feedback(sections: dict[str, list[dict]], feedback: str, all_stories: list[dict]) -> dict[str, list[dict]]:
     """
-    Process natural language feedback to modify newsletter sections.
+    Process natural language feedback to modify newsletter sections using Claude AI.
+
+    This function enables editors to refine the newsletter using plain English commands.
+    It sends the user's feedback to Claude Haiku, which interprets the request and
+    returns structured JSON actions that are then applied to modify the sections.
+
+    Workflow:
+        1. Build a summary of current sections (headlines + sources) for context
+        2. Send the summary + user feedback to Claude Haiku with a structured prompt
+        3. Parse Claude's JSON response into actionable instructions
+        4. Apply each action (move/remove) by matching partial headline text
+        5. Print confirmation messages for each action taken
 
     Args:
-        sections: Current sections dict
-        feedback: User's natural language feedback
-        all_stories: List of all classified stories for reference
+        sections: Dictionary mapping section names to lists of story dicts.
+            Valid section names: 'top_stories', 'politics', 'housing',
+            'education', 'health', 'environment', 'lastly'.
+            Each story dict should have 'headline' or 'title' and 'source' keys.
+        feedback: Natural language instruction from the user, e.g.:
+            - "Move the NJ Transit story to politics"
+            - "Remove all crime stories from top stories"
+            - "Move the Murphy budget story from politics to top_stories"
+        all_stories: List of all classified stories (currently unused but passed
+            for potential future enhancements like adding stories back).
 
     Returns:
-        Modified sections dict
+        The modified sections dict with actions applied. The original dict is
+        mutated in-place AND returned for convenience.
+
+    JSON Action Format (returned by Claude):
+        The function expects Claude to return JSON in this structure:
+        {
+            "actions": [
+                {
+                    "action": "move",
+                    "headline_contains": "partial headline text",
+                    "from_section": "section_name",
+                    "to_section": "section_name"
+                },
+                {
+                    "action": "remove",
+                    "headline_contains": "partial headline text",
+                    "from_section": "section_name"
+                },
+                {
+                    "action": "note",
+                    "message": "Explanation when feedback cannot be processed"
+                }
+            ]
+        }
+
+    Headline Matching:
+        - Uses case-insensitive partial string matching
+        - The 'headline_contains' value is searched within each story's headline
+        - Only the FIRST matching story is affected (not all matches)
+        - Matching uses: `headline_contains.lower() in headline.lower()`
+
+    Error Handling:
+        - If Claude's response cannot be parsed as JSON, returns sections unchanged
+        - If no stories match the requested headline, prints "No matching stories found"
+        - Network/API errors are caught and logged, sections returned unchanged
+        - Markdown code blocks in Claude's response are automatically stripped
+
+    Example Usage:
+        >>> sections = {'top_stories': [{'headline': 'NJ Transit delays'}],
+        ...             'politics': []}
+        >>> process_feedback(sections, "Move NJ Transit to politics", [])
+        # Output: ✓ Moved 'nj transit...' from top_stories to politics
+        >>> sections
+        {'top_stories': [], 'politics': [{'headline': 'NJ Transit delays'}]}
+
+    Note:
+        - Uses Claude claude-3-haiku-20240307 model for fast, cost-effective processing
+        - Max tokens set to 500 (sufficient for typical action responses)
+        - The function modifies sections in-place; callers should regenerate HTML after
     """
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-    # Build a summary of current sections for context
+    # --- Step 1: Build context for Claude ---
+    # Create a text summary of all sections and their stories so Claude understands
+    # the current newsletter state. We limit to 15 stories per section and truncate
+    # headlines to 70 chars to stay within reasonable token limits.
     sections_summary = []
     for section_name, stories in sections.items():
         if stories:
             sections_summary.append(f"\n{section_name.upper()} ({len(stories)} stories):")
-            for i, story in enumerate(stories[:15], 1):  # Show first 15
+            for i, story in enumerate(stories[:15], 1):  # Limit context to first 15 per section
                 headline = story.get("headline", story.get("title", ""))[:70]
                 source = story.get("source", "Unknown")
                 sections_summary.append(f"  {i}. {headline}... ({source})")
@@ -303,6 +372,12 @@ def process_feedback(sections: dict, feedback: str, all_stories: list[dict]) -> 
 
     sections_text = "\n".join(sections_summary)
 
+    # --- Step 2: Construct the Claude prompt ---
+    # The prompt provides Claude with:
+    # - The current newsletter state (sections_text)
+    # - The user's natural language feedback
+    # - A strict JSON schema for the expected response format
+    # - Examples to guide Claude's output
     prompt = f"""You are helping edit a newsletter. Here are the current sections:
 
 {sections_text}
@@ -324,57 +399,69 @@ Example response:
 Respond with JSON only, no explanation."""
 
     try:
+        # --- Step 3: Call Claude API ---
         message = client.messages.create(
-            model="claude-3-haiku-20240307",
-            max_tokens=500,
+            model="claude-3-haiku-20240307",  # Fast, cost-effective model for simple parsing
+            max_tokens=500,  # Actions are typically small JSON objects
             messages=[{"role": "user", "content": prompt}]
         )
 
         response_text = message.content[0].text.strip()
 
-        # Parse JSON
+        # --- Step 4: Parse Claude's JSON response ---
+        # Claude sometimes wraps JSON in markdown code blocks (```json ... ```),
+        # so we strip those if present before parsing.
         if "```" in response_text:
             response_text = response_text.split("```")[1]
             if response_text.startswith("json"):
-                response_text = response_text[4:]
+                response_text = response_text[4:]  # Remove "json" language identifier
             response_text = response_text.strip()
 
         instructions = json.loads(response_text)
 
-        # Apply actions
+        # --- Step 5: Apply each action to the sections dict ---
+        # We iterate through Claude's suggested actions and apply them one by one.
+        # The sections dict is modified in-place.
         actions_taken = []
         for action in instructions.get("actions", []):
             action_type = action.get("action")
 
+            # "note" actions are informational messages from Claude
+            # (e.g., explaining why a request couldn't be fulfilled)
             if action_type == "note":
                 print(f"    Note: {action.get('message', '')}")
                 continue
 
+            # Extract action parameters (case-insensitive headline matching)
             headline_contains = action.get("headline_contains", "").lower()
             from_section = action.get("from_section")
             to_section = action.get("to_section")
 
             if action_type == "move" and from_section and to_section:
-                # Find and move the story
+                # MOVE action: Transfer story from one section to another
+                # We iterate over a copy of the list ([:]) since we're modifying it
                 for story in sections.get(from_section, [])[:]:
                     headline = story.get("headline", story.get("title", "")).lower()
+                    # Partial match: check if the search term appears anywhere in headline
                     if headline_contains in headline:
                         sections[from_section].remove(story)
+                        # Create target section if it doesn't exist
                         if to_section not in sections:
                             sections[to_section] = []
                         sections[to_section].append(story)
                         actions_taken.append(f"Moved '{headline_contains}...' from {from_section} to {to_section}")
-                        break
+                        break  # Only move the FIRST matching story
 
             elif action_type == "remove" and from_section:
-                # Remove the story
+                # REMOVE action: Delete story from a section entirely
                 for story in sections.get(from_section, [])[:]:
                     headline = story.get("headline", story.get("title", "")).lower()
                     if headline_contains in headline:
                         sections[from_section].remove(story)
                         actions_taken.append(f"Removed '{headline_contains}...' from {from_section}")
-                        break
+                        break  # Only remove the FIRST matching story
 
+        # --- Step 6: Report results to user ---
         if actions_taken:
             for action_msg in actions_taken:
                 print(f"    ✓ {action_msg}")
@@ -384,21 +471,51 @@ Respond with JSON only, no explanation."""
         return sections
 
     except Exception as e:
+        # Graceful degradation: if anything fails (API error, JSON parse error,
+        # network issue), we log the error and return sections unchanged.
+        # This ensures the workflow can continue even if feedback processing fails.
         print(f"    Error processing feedback: {e}")
         return sections
 
 
-def feedback_loop(sections: dict, all_stories: list[dict], preview_path: Path) -> tuple[dict, str]:
+def feedback_loop(
+    sections: dict[str, list[dict]],
+    all_stories: list[dict],
+    preview_path: Path
+) -> tuple[dict[str, list[dict]], str]:
     """
-    Interactive feedback loop for refining the newsletter.
+    Interactive feedback loop for refining the newsletter via natural language.
+
+    This function provides a REPL-like interface where editors can iteratively
+    refine the newsletter by providing natural language feedback. Each piece of
+    feedback is processed by `process_feedback()`, which uses Claude AI to
+    interpret and apply the requested changes.
 
     Args:
-        sections: Current sections dict
-        all_stories: All classified stories
-        preview_path: Path to the HTML preview file
+        sections: Dictionary mapping section names to lists of story dicts.
+            This is modified in-place as feedback is processed.
+        all_stories: All classified stories (passed to process_feedback for
+            potential future use, e.g., adding stories back).
+        preview_path: Path to the HTML preview file. Updated after each
+            feedback round so editors can see changes.
 
     Returns:
-        Tuple of (modified sections dict, final HTML)
+        Tuple of (final sections dict, final HTML string).
+
+    User Commands:
+        - Any natural language text: Processed as feedback (move/remove stories)
+        - 'done' or empty Enter: Exit the loop and finalize
+        - 'refresh': Regenerate HTML and reopen browser preview
+
+    Example Session:
+        >>> feedback_loop(sections, stories, Path("drafts/dnr-2024-01-15.html"))
+        Feedback (or 'done'): Move the Murphy story to top stories
+            ✓ Moved 'murphy...' from politics to top_stories
+            Preview updated. Refresh your browser or type 'refresh'.
+        Feedback (or 'done'): Remove all lottery stories
+            ✓ Removed 'powerball...' from lastly
+            Preview updated. Refresh your browser or type 'refresh'.
+        Feedback (or 'done'): done
     """
     print("\n  You can now provide feedback to refine the newsletter.")
     print("  Examples:")
