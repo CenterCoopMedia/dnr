@@ -6,126 +6,127 @@ allowed-tools: Read, Grep, Edit
 
 # Editorial Feedback Processor
 
-You are the DNR newsletter editor's assistant. When they give you editing instructions in natural language, you interpret them intelligently and suggest the specific changes needed.
+## When to Activate
 
-## Understanding Editor Intent
+Activate this skill when:
+- User gives editing instructions in natural language
+- User wants to move, remove, or reorder stories
+- Bulk operations needed ("remove all X from Y")
+- User says "this doesn't belong" or similar
+- Refining newsletter after preview review
 
-Editors speak in shorthand. Interpret these common patterns:
+## Core Concepts
 
-**Move operations:**
-- "Move the transit story to politics" → Find story about transit, move to politics section
-- "This belongs in top stories" → Current story should be elevated
-- "Put the Murphy announcement first" → Reorder within section
+**Editor Shorthand**: Editors speak efficiently. Map their intent:
 
-**Remove operations:**
-- "Remove all crime stories" → Find headlines with crime indicators, remove from current section
-- "Take out the lottery story" → Find story about lottery, remove entirely
-- "This doesn't belong" → Remove from newsletter (move to skip)
+| They Say | They Mean |
+|----------|-----------|
+| "the transit story" | Find headline mentioning NJ Transit, transit, train, etc. |
+| "crime stories" | Headlines with crime/violence indicators |
+| "move to politics" | Change section assignment |
+| "doesn't belong" | Remove from newsletter (→ skip) |
+| "this is top stories" | Elevate to top_stories section |
 
-**Bulk operations:**
-- "Remove all crime from top stories" → Multiple stories, same action
-- "Move everything about housing to housing section" → Topic-based bulk move
+**Crime vs Policy Distinction** (critical judgment call):
+- **Crime blotter** = "What happened to whom" → Remove from top_stories
+- **Policy news** = "What this reveals about systems" → May belong in top_stories
 
-## Identifying Stories by Topic
+Example: "AG charges 5 officials with corruption" = POLICY (systemic issue)
+Example: "Man arrested for carjacking" = CRIME (isolated incident)
 
-When editor says "the transit story", search for:
-- Direct mentions: "NJ Transit", "transit", "train", "bus", "rail"
-- Related terms: "commuter", "PATH", "Light Rail", "fare"
-- Agency names: "NJ Transit Board", "transit authority"
+**Current Limitation**: Existing feedback loop (`workflow.py:278-388`) only searches first 15 stories per section. This skill provides full semantic search.
 
-When editor says "crime stories", look for:
-- Crime keywords: murder, shooting, stabbing, robbery, carjacking, assault
-- Incident keywords: crash, fatal, killed, injured, arrested
-- Crime-adjacent: charged, indicted, sentenced, convicted
+## Practical Guidance
 
-## Making Editorial Judgment Calls
+### Processing Steps
 
-Sometimes you need to apply editorial judgment:
+1. **Parse Intent**: Identify action (move/remove/reorder) and target
+2. **Find Matches**: Search all sections using semantic matching
+3. **Apply Editorial Judgment**: Flag edge cases for confirmation
+4. **Generate Actions**: Produce specific, reversible changes
 
-**Crime vs Policy:**
-- "AG charges officials with corruption" → POLICY (systemic issue)
-- "Man arrested for carjacking" → CRIME (isolated incident)
-- "Police union contract dispute" → POLITICS (labor/government)
+### Matching Strategies
 
-**Top Stories Criteria:**
-- Multi-outlet coverage → Strong signal for top_stories
-- Statewide impact → Belongs in top_stories
-- Policy implications → Consider for top_stories
-- Individual incident without policy angle → NOT top_stories
-
-## Processing Feedback
-
-For each instruction:
-
-1. **Identify the target story/stories**
-   - Search all sections for matching headlines
-   - Use fuzzy matching (partial headline match OK)
-   - Note confidence level
-
-2. **Determine the action**
-   - move: from_section → to_section
-   - remove: from_section → skip
-   - reorder: within section
-
-3. **Check for edge cases**
-   - Policy story that mentions crime → May want to keep
-   - Story in multiple sections → Handle both
-   - Ambiguous match → Ask for clarification
-
-## Output Format
-
+**For specific stories**: Match proper nouns, numbers, unique phrases
 ```
-PROCESSING: "[User's instruction]"
-
-IDENTIFIED STORIES (N matches):
-
-[1] "[Headline]"
-    Current section: [section]
-    Action: [move to X / remove / keep with note]
-    Confidence: [high/medium/low]
-
-[2] "[Headline]"
-    Current section: [section]
-    Action: [action]
-    Note: [If edge case, explain reasoning]
-
-KEPT (edge cases):
-- "[Headline]" - Reason: [why this wasn't removed/moved]
-
-CHANGES TO APPLY:
-1. Move "[headline fragment]" from [section] to [section]
-2. Remove "[headline fragment]" from [section]
-
-Apply these changes? (y/n)
+"the Murphy announcement" → Headlines containing "Murphy" + announcement-type verbs
 ```
 
-## Handling Ambiguity
-
-When instruction is unclear:
-
+**For categories**: Match semantic indicators
 ```
-CLARIFICATION NEEDED:
-
-You said: "remove the shooting story"
-
-Found 2 matches:
-[1] "Police investigate shooting in Newark" - crime blotter
-[2] "Governor announces gun violence task force" - policy response
-
-Which would you like to remove?
-- Type "1" for just the crime blotter
-- Type "2" for just the policy story
-- Type "both" for both
-- Type "neither" to cancel
+"crime stories" → murder, shooting, stabbing, robbery, carjacking, assault, arrested, charged, etc.
 ```
 
-## Section Definitions Reference
+**For bulk operations**: Iterate all matches, present for confirmation
+```
+"remove all crime from top stories" → List all matches before applying
+```
 
-- **top_stories**: Major NJ policy news, statewide impact, multi-outlet coverage
-- **politics**: Legislature, elections, courts, municipal government
-- **housing**: Affordable housing, zoning, development, real estate policy
-- **education**: K-12, higher ed, school boards, curriculum
-- **health**: Healthcare, hospitals, public health policy
-- **environment**: Offshore wind, clean energy, PFAS, climate
-- **lastly**: Arts, sports, restaurants, human interest, lighter news
-- **skip**: Non-NJ content, crime blotter, filtered content
+### Edge Case Handling
+
+When a story could go either way:
+1. Present the ambiguity
+2. Explain reasoning for both interpretations
+3. Let user decide
+
+## Examples
+
+**Input**: "Remove all crime stories from top stories"
+
+**Output**:
+```
+IDENTIFIED FOR REMOVAL (4 stories):
+✓ "Man charged in Newark carjacking" → skip
+✓ "Three arrested in drug bust" → skip
+✓ "Fatal crash closes Route 80" → skip
+? "AG announces crackdown on wage theft" → KEPT (policy/enforcement)
+
+Note: Kept 1 story - mentions enforcement but is policy-focused.
+Remove it too? (y/n)
+```
+
+**Input**: "Move the transit story to politics"
+
+**Output**:
+```
+FOUND: "NJ Transit announces fare increases for 2026"
+Current section: top_stories
+Action: Move to politics
+
+Apply? (y/n)
+```
+
+**Input**: "This doesn't belong" (after viewing specific story)
+
+**Output**:
+```
+Which story should be removed?
+[Awaiting clarification or assuming context from recent discussion]
+```
+
+## Guidelines
+
+1. Always confirm bulk operations before applying
+2. Flag policy/crime edge cases rather than auto-deciding
+3. Provide reasoning for kept stories in bulk removes
+4. Actions should be reversible (log what was changed)
+5. When ambiguous, ask for clarification
+
+## Integration
+
+- **dnr-classification**: Uses same crime/policy distinction logic
+- **dnr-story-grouping**: "Combine these" triggers grouping skill
+- **dnr-quality-audit**: Post-edit audit catches remaining issues
+
+## Section Reference
+
+| Section | Content Type |
+|---------|--------------|
+| top_stories | Major policy, statewide impact, multi-outlet |
+| politics | Government, elections, courts |
+| housing | Development, zoning, affordability |
+| education | Schools, universities |
+| health | Healthcare, public health |
+| environment | Climate, energy, DEP |
+| lastly | Arts, sports, lighter news |
+| skip | Non-NJ, filtered content |

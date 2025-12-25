@@ -6,157 +6,167 @@ allowed-tools: Read, Grep, Edit
 
 # Filter Rule Management
 
-You manage the content filtering rules that keep crime blotter, sports scores, lottery results, and other non-policy content out of top_stories.
+## When to Activate
 
-## Current Filter Architecture
+Activate this skill when:
+- User wants to add/modify filter keywords
+- Story slipped through that should have been filtered
+- Story was incorrectly filtered (false positive)
+- User asks "why was this filtered?" or "would this be filtered?"
+- Reviewing filter effectiveness
 
-**Location:** `src/classifier.py`
+## Core Concepts
 
-**Keyword Lists:**
-- `TOP_STORIES_EXCLUSION_KEYWORDS` - 105 keywords across categories
-- `SKIP_HEADLINE_PATTERNS` (in rss_fetcher.py) - Generic broadcast patterns
-- `NJ_KEYWORDS` - Positive NJ relevance signals
-- `SKIP_KEYWORDS` - Non-NJ signals (NYC boroughs, other states)
+**Filter Architecture**: Two-stage filtering
+1. **Pre-classification** (rss_fetcher.py): Generic broadcasts skipped entirely
+2. **Post-classification** (classifier.py): Crime/crash removed from top_stories only
 
-## Filter Categories
+**Keyword Categories** (105 total in TOP_STORIES_EXCLUSION_KEYWORDS):
+| Category | Count | Examples |
+|----------|-------|----------|
+| Crime | ~35 | murder, carjacking, robbery, assault |
+| Crashes | ~22 | fatal crash, pedestrian struck, pileup |
+| Sports | ~22 | varsity, state championship, player of week |
+| Shopping | ~13 | gift guide, black friday, deals |
+| Lottery | ~10 | powerball, winning numbers, jackpot |
+| Restaurant | ~16 | best pizza, restaurant review, food critic |
+| Homes | ~18 | mansion sold, luxury home, million-dollar |
 
-### Crime (20+ keywords)
-Filters out crime blotter items:
-- carjacked, carjacking, murder, murdered, homicide
-- stabbing, stabbed, shooting, shot, assault
-- robbery, armed robbery, burglary, theft
-- drug bust, drug arrest, overdose
+**Match Behavior**: Case-insensitive substring match
+- "crash" matches "crashed", "crashing", "car crash"
+- Careful: "fire" matches "fired" (different meaning)
 
-### Crashes/Accidents (20+ keywords)
-Filters out traffic incidents:
-- crash, fatal crash, deadly crash
-- pedestrian struck, pedestrian killed
-- wrong-way driver, multi-vehicle, pileup
+## Practical Guidance
 
-### High School Sports (20+ keywords)
-Filters out prep sports:
-- high school football/basketball/soccer/etc.
-- varsity, state championship
-- player of the week, athlete of the week
-
-### Shopping/Deals (10+ keywords)
-Filters out gift guides and deals:
-- gift guide, gift ideas, holiday gifts
-- black friday, cyber monday, deals, discount
-
-### Lottery (8+ keywords)
-Filters out lottery coverage:
-- lottery, powerball, mega millions
-- winning numbers, jackpot winner
-
-### Restaurant/Food (15+ keywords)
-Filters out food reviews:
-- restaurant review, best pizza, best bagels
-- food critic, we tried, taste test
-
-### Expensive Homes (10+ keywords)
-Filters out real estate porn:
-- mansion sold, million-dollar home
-- most expensive, luxury home
-
-## Testing Filter Behavior
-
-To test if a headline would be filtered:
+### Testing a Headline
 
 ```python
 from src.classifier import is_crime_or_crash_headline
 
-headline = "Man arrested in Newark carjacking"
-would_filter = is_crime_or_crash_headline(headline)
-print(f"Would filter: {would_filter}")
+headline = "Test headline here"
+filtered = is_crime_or_crash_headline(headline)
+print(f"Would be filtered: {filtered}")
 ```
 
-## Output Format for Filter Analysis
+### Adding a Keyword
 
-```
-FILTER ANALYSIS: "[keyword or headline]"
+Consider before adding:
+1. **Variants**: Does it have plural/tense forms that need separate entries?
+2. **False positives**: Will it incorrectly match other stories?
+3. **Category**: Which filter category does it belong to?
 
-CURRENT STATUS: [In list / Not in list]
-Category: [crime / crashes / sports / shopping / lottery / restaurant / homes]
-
-MATCHES IN RECENT STORIES:
-[1] "[Headline that would match]" - [correct/false positive]
-[2] "[Headline that would match]" - [correct/false positive]
-
-RELATED KEYWORDS TO CONSIDER:
-- [variant1] - [in list / not in list]
-- [variant2] - [in list / not in list]
-
-FALSE POSITIVE RISK:
-[Low/Medium/High] - [Explanation]
-Example false positive: "[headline that would incorrectly match]"
-
-RECOMMENDATION: [Add / Don't add / Remove / Modify]
-```
-
-## Adding New Keywords
-
-When adding a keyword, consider:
-
-1. **Variants**: Does it have plural/past tense forms?
-   - "crash" catches "crashed", "crashing" (substring match)
-   - But "fire" doesn't catch "fired" (different meaning)
-
-2. **False positives**: Will it catch things it shouldn't?
-   - "shot" catches "gunshot" but also "screenshot"
-   - "fire" catches "house fire" but also "Murphy fires back"
-
-3. **Coverage**: Are there related terms missing?
-   - If adding "carjacking", also consider "car theft", "vehicle theft"
-
-4. **Category**: Which filter category does it belong to?
-   - Crime, crashes, sports, shopping, lottery, restaurant, homes
-
-## Modifying Filter Rules
-
-To add a keyword, edit `src/classifier.py`:
-
+Example:
 ```python
+# Adding "vehicle theft" to crime category
 TOP_STORIES_EXCLUSION_KEYWORDS = [
     # Crime
     "carjacked", "carjacking", "murder", ...
-    "NEW_KEYWORD_HERE",  # Add to appropriate category
+    "vehicle theft",  # NEW - catches car theft stories
     ...
 ]
 ```
 
-## Current Keyword Count by Category
+### Identifying Gaps
 
-As of last analysis:
-- Crime: ~35 keywords
-- Crashes/Accidents: ~22 keywords
-- Sports: ~22 keywords
-- Shopping/Deals: ~13 keywords
-- Lottery: ~10 keywords
-- Restaurant/Food: ~16 keywords
-- Expensive Homes: ~18 keywords
+Look for patterns in stories that slip through:
+- Different phrasing: "hit by car" vs "pedestrian struck"
+- Synonyms: "car theft" vs "carjacking"
+- Compound phrases: "multiple fatalities"
 
-**Total: ~105 keywords**
+## Examples
 
-## Known Gaps
+**Input**: "Would this headline be filtered: 'Two killed in wrong-way crash on Parkway'"
 
-Based on stories that slip through:
+**Output**:
+```
+FILTER TEST
 
-1. **Vehicle theft variants**: "car theft", "vehicle stolen" - not in list
-2. **Violence variants**: "hit by car", "struck by vehicle" - only "pedestrian struck"
-3. **Sports variants**: "final score", "box score" - may be missing
-4. **Food variants**: "best [food item]" patterns incomplete
+Headline: "Two killed in wrong-way crash on Parkway"
 
-## Generic Broadcast Patterns
+MATCH FOUND: "wrong-way" → crashes category
+MATCH FOUND: "crash" → crashes category
+MATCH FOUND: "killed" → crime category
 
-Separate from keyword filters, these patterns skip entire stories at RSS level:
+Result: YES, would be filtered from top_stories
 
-Located in `src/rss_fetcher.py` as `SKIP_HEADLINE_PATTERNS`:
-- "newscast for"
-- "morning edition", "evening edition"
-- "news roundup for"
-- "weather forecast for"
-- "podcast:", "listen:", "watch:"
-- "nj spotlight news:", "whyy news:"
+Current behavior: Correct - this is a traffic incident,
+not policy news. Would be moved to skip section.
+```
 
-These are substring matches applied to headlines before classification.
+**Input**: "This crime story slipped through: 'Teen arrested after armed robbery at mall'"
+
+**Output**:
+```
+FILTER GAP ANALYSIS
+
+Headline: "Teen arrested after armed robbery at mall"
+
+MATCHED KEYWORDS:
+- "arrested" → NOT in list (gap!)
+- "armed robbery" → IN list ✓
+- "robbery" → IN list ✓
+
+Wait - this SHOULD have been caught by "robbery" and "armed robbery".
+
+INVESTIGATION:
+Let me check the actual filter...
+
+Possible issues:
+1. Case sensitivity problem?
+2. Filter not running on this story?
+3. Story pre-classified from Airtable (bypasses filter)?
+
+ACTION: Verify story source and classification path
+```
+
+**Input**: "Add 'vehicle theft' to the filter"
+
+**Output**:
+```
+ADDING KEYWORD: "vehicle theft"
+
+Category: Crime (alongside carjacking, robbery, etc.)
+
+IMPACT ANALYSIS:
+Would now catch headlines like:
+- "Police investigate vehicle theft ring"
+- "Vehicle theft up 20% in Newark"
+
+FALSE POSITIVE RISK: Low
+- "vehicle" alone is neutral
+- "theft" scoped to crime context
+
+RELATED KEYWORDS TO CONSIDER:
+- "car theft" - NOT currently in list
+- "auto theft" - NOT currently in list
+- "stolen vehicle" - NOT currently in list
+
+RECOMMENDATION: Add all four variants:
+- "vehicle theft"
+- "car theft"
+- "auto theft"
+- "stolen vehicle"
+
+Add to src/classifier.py TOP_STORIES_EXCLUSION_KEYWORDS
+in the Crime section.
+```
+
+## Guidelines
+
+1. Always test keyword impact before adding
+2. Consider related variants to add together
+3. Check for false positive risk with common words
+4. Document why keyword was added (future reference)
+5. Group keywords by category in the code
+
+## Integration
+
+- **dnr-classification**: Filter runs after classification
+- **dnr-editorial-feedback**: Manual removes may suggest filter gaps
+- **dnr-quality-audit**: Repeated issues indicate filter problems
+
+## File References
+
+- Exclusion keywords: `src/classifier.py:TOP_STORIES_EXCLUSION_KEYWORDS`
+- Filter function: `src/classifier.py:is_crime_or_crash_headline()`
+- Broadcast patterns: `src/rss_fetcher.py:SKIP_HEADLINE_PATTERNS`
