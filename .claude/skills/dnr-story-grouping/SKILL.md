@@ -4,89 +4,101 @@ description: Identify and group duplicate stories covering the same event from m
 allowed-tools: Read, Grep, Glob
 ---
 
-# Story Grouping & Deduplication
+# Story Grouping & Multi-Outlet Consolidation
 
-You are an experienced NJ news editor who recognizes when multiple outlets are covering the same story. Your job is to identify these duplicates and recommend grouping them into single entries with multiple source citations.
+## When to Activate
 
-## When Multiple Stories Are Really One Story
+Activate this skill when:
+- User mentions "duplicate stories" or "same story multiple times"
+- Preparing newsletter and want to check for consolidation opportunities
+- Story appears from 3+ outlets (strong top_stories signal)
+- User asks about multi-outlet coverage or grouping
+- Reviewing newsletter quality and notice repetition
 
-The same event often gets different headlines:
-- "Murphy signs $2B transit bill" (NJ.com)
-- "Governor approves major transit funding package" (NJ Spotlight)
-- "State invests billions in NJ Transit overhaul" (NJ Monitor)
+## Core Concepts
 
-These are ONE story with THREE sources. Multi-outlet coverage is a strong signal the story belongs in top_stories.
+**The Multi-Outlet Signal**: When 3+ major outlets cover the same event, it's a strong indicator the story belongs in top_stories. This is editorial judgment encoded as a heuristic.
 
-## How to Identify Duplicates
+**Headline Variance**: Same event gets different framing:
+- "Murphy signs $2B transit bill" (NJ.com) - specific, number-focused
+- "Governor approves major transit funding" (NJ Spotlight) - role-focused
+- "State invests billions in NJ Transit" (NJ Monitor) - impact-focused
 
-Look for stories that share:
-- Same proper nouns (Murphy, NJ Transit, specific locations)
-- Same numbers/amounts ($2B, 500 jobs, 3 officials)
-- Same event type (signing, announcement, vote, ruling)
-- Published within same 24-hour window
+These are ONE story. Recognize by shared: proper nouns, numbers, event type, timeframe.
 
-Headlines don't need to match - they often have different framing.
+**Current Limitation**: DNR only deduplicates by URL (`main.py:136` has TODO for smarter grouping). This skill fills that gap with semantic grouping.
 
-## Grouping Decision Framework
+## Practical Guidance
 
-**DEFINITELY GROUP:**
-- Same government action (bill signing, vote, ruling)
-- Same announcement/press release covered by multiple outlets
-- Same incident with policy implications
+### Identification Signals
 
-**MAYBE GROUP:**
-- Related but distinct aspects of same issue
-- Follow-up stories vs. original coverage
+**Strong Match (definitely same story)**:
+- Identical proper nouns (Murphy, NJ Transit, specific town)
+- Same numbers ($2B, 500 jobs, 3 officials)
+- Same event type (signing, vote, ruling, arrest)
+- Published within 24 hours
 
-**DON'T GROUP:**
-- Different events on same topic (two separate crashes)
-- Opinion/analysis vs. news reporting
-- Local angle vs. statewide coverage (keep separate perspectives)
+**Possible Match (verify content)**:
+- Related topic but different angle
+- Same subject, different event
+- Follow-up vs original coverage
 
-## Output Format
+**Not a Match**:
+- Same topic, different events (two separate crashes)
+- Opinion vs news on same subject
+- Different time periods
 
-When grouping stories, provide:
+### Headline Selection Criteria
 
+When consolidating, choose headline that:
+1. Contains specific numbers/names over vague language
+2. Uses active voice
+3. Is shorter when equally informative
+4. Avoids clickbait framing
+
+### Section Placement Logic
+
+| Outlet Count | Recommendation |
+|--------------|----------------|
+| 3+ major outlets | top_stories |
+| 2 outlets | Consider top_stories if statewide impact |
+| Regional only | Keep in topic section, combine sources |
+
+## Examples
+
+**Input**: Newsletter preview shows:
+- "Murphy signs $2B transit funding bill" (NJ.com)
+- "Governor approves major NJ Transit investment" (NJ Spotlight News)
+- "State commits billions to transit overhaul" (NJ Monitor)
+
+**Output**:
 ```
-GROUPED STORIES FOUND:
-
-[1] [Event description] (N sources)
-    Recommended headline: "[Best headline from the group]"
-    Sources: Source1, Source2, Source3
-    Section recommendation: [section] (reason: multi-outlet coverage)
-
-    Original headlines:
-    - "Headline A" (Source1)
-    - "Headline B" (Source2)
-
-[2] [Next group...]
+GROUPED: Transit funding bill (3 sources)
+Headline: "Murphy signs $2B transit funding bill"
+Sources: NJ.com, NJ Spotlight News, NJ Monitor
+Section: top_stories (multi-outlet coverage)
 ```
 
-## Headline Selection
+**Input**: Stories about different council meetings in different towns
 
-When choosing which headline to use for grouped stories:
-1. Prefer specific over vague ("$2B transit bill" over "major funding")
-2. Prefer active voice over passive
-3. Prefer shorter when equally informative
-4. Include key number/name when relevant
-5. Avoid clickbait framing
+**Output**: NOT grouped - different events, keep separate in appropriate sections
 
-## Integration with Newsletter Sections
+## Guidelines
 
-Multi-outlet coverage strongly suggests top_stories placement:
-- 3+ major outlets covering same story = likely top_stories
-- 2 outlets = consider for top_stories if policy/statewide impact
-- Regional outlets only = keep in appropriate topic section
+1. Only group stories about the SAME event, not same topic
+2. Preserve all source citations in grouped entry
+3. Choose most specific headline
+4. Multi-outlet coverage = strong top_stories signal
+5. When uncertain, keep separate (avoid false grouping)
 
-## Reading Newsletter Data
+## Integration
 
-To find stories, check:
-- Generated preview: `drafts/dnr-*.html`
-- Section organization happens in `src/main.py:organize_by_section()`
-- Current deduplication is URL-only in `src/main.py:deduplicate_stories()`
+- **dnr-quality-audit**: Audit checks for ungrouped duplicates
+- **dnr-editorial-feedback**: "Combine these stories" triggers grouping
+- **dnr-classification**: Grouped stories may need section reassignment
 
-Look for headlines in the HTML that reference the same:
-- People (Murphy, specific legislators, officials)
-- Organizations (NJ Transit, specific agencies, companies)
-- Locations (specific towns, regions)
-- Events (votes, signings, announcements, incidents)
+## File References
+
+- Deduplication logic: `src/main.py:deduplicate_stories()`
+- HTML formatting: `src/html_formatter.py:format_grouped_story()`
+- Preview output: `drafts/dnr-YYYY-MM-DD.html`

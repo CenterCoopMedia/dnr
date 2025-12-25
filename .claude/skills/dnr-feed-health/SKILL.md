@@ -6,164 +6,157 @@ allowed-tools: Bash, Read, Grep, Glob
 
 # RSS Feed Health Monitor
 
-You are the DNR's technical operations specialist. When RSS feeds break or underperform, you diagnose the issue and recommend fixes.
+## When to Activate
 
-## Feed Health Categories
+Activate this skill when:
+- User asks about feed health or broken feeds
+- Major outlet missing from newsletter
+- Feed returns 0 stories unexpectedly
+- Coverage gaps suggest feed issues
+- Periodic audit requested
 
-### HEALTHY
-- Returns expected story count (varies by outlet)
-- Stories are fresh (within lookback window)
-- URLs are valid and accessible
+## Core Concepts
 
-### UNDERPERFORMING
-- Returns fewer stories than expected
-- May indicate: rate limiting, feed changes, or site issues
-- Needs investigation
+**Feed Categories**:
+| Status | Definition | Action |
+|--------|------------|--------|
+| Healthy | Returns expected story count | Monitor |
+| Underperforming | Returns < expected | Investigate |
+| Broken | Returns 0 consistently | Fix urgently |
+| Unconfigured | Has null RSS URL | Use Playwright or find feed |
 
-### BROKEN
-- Returns 0 stories consistently
-- Feed URL may be dead, changed, or blocked
-- Needs immediate attention
+**Priority Feeds** (must always work):
+1. NJ.com - primary statewide
+2. NJ Spotlight News - policy focus
+3. NJ Monitor - statewide
+4. NorthJersey.com - North Jersey regional
+5. Press of Atlantic City - South Jersey
 
-### UNCONFIGURED
-- Source has no RSS URL in config (null value)
-- May need Playwright scraping instead
-- Check if RSS became available
+**Known Problem Patterns**:
+- USA Today Network (NorthJersey, APP, Press of AC): Often blocked, use Playwright
+- TAPinto Network: RSS unreliable, use Playwright
+- NJ.com: Add `?outputType=amp` to bypass paywall
 
-## Diagnostic Steps
+## Practical Guidance
 
-### 1. Check Feed Accessibility
+### Diagnostic Commands
+
+**Test single feed**:
 ```bash
-# Test if feed URL responds
-curl -I "[FEED_URL]" 2>/dev/null | head -5
-
-# Try fetching feed content
-curl -s "[FEED_URL]" | head -50
+curl -s "FEED_URL" | head -20
 ```
 
-### 2. Check Feed Format
-- Is it RSS 2.0, Atom, or JSON Feed?
-- Has the format changed?
-- Are there parsing errors?
-
-### 3. Check for Paywall/Block
-- Some sites block automated requests
-- May need User-Agent header
-- May need Playwright instead
-
-### 4. Check Date Filtering
-- Are stories being filtered by date?
-- Is the feed returning old content only?
-- Is timezone handling correct?
-
-## Known Feed Issues
-
-**USA Today Network (NorthJersey, APP, Press of AC):**
-- Often blocked or rate-limited
-- Use Playwright scraper with JS disabled
-- Configured in `playwright_fetcher.py`
-
-**TAPinto Network:**
-- RSS feeds often empty or broken
-- Use Playwright scraper
-- Multiple town-specific instances
-
-**NJ.com:**
-- Working but may require `?outputType=amp` suffix
-- Already configured in `rss_fetcher.py:transform_url()`
-
-## Output Format
-
-```
-FEED HEALTH REPORT - [Date]
-
-BROKEN FEEDS (0 stories):
-[1] [Outlet Name]
-    URL: [feed_url]
-    Error: [HTTP error / parse error / timeout]
-    Last working: [if known]
-    Suggested fix: [specific recommendation]
-
-[2] [Outlet Name]
-    ...
-
-UNDERPERFORMING FEEDS (<5 stories):
-[1] [Outlet Name]
-    Expected: ~[N] stories/day
-    Actual: [N] stories
-    Possible causes: [rate limit / paywall / feed change]
-    Suggested fix: [specific recommendation]
-
-UNCONFIGURED SOURCES (null RSS):
-[1] [Outlet Name]
-    Domain: [domain]
-    RSS available: [Yes/No/Unknown]
-    Alternative: [Playwright / manual / none]
-
-HEALTHY FEEDS: [N]/[Total]
-Top performers: [Outlet1] ([N]), [Outlet2] ([N])
-
-RECOMMENDATIONS:
-1. [Priority action item]
-2. [Secondary action item]
-```
-
-## Reading Feed Configuration
-
-Check `config/rss_feeds.json` for:
-- Feed URLs (rss_url field, null if unconfigured)
-- Priority levels (1-3, lower = higher priority)
-- Coverage area (statewide, regional, hyperlocal)
-
-## Testing Individual Feeds
-
-Use the built-in test utility:
+**Test all feeds**:
 ```bash
 cd /home/user/dnr
 venv/Scripts/python.exe src/rss_fetcher.py --test
 ```
 
-Or test a specific feed:
-```bash
-# Manual feed test
-python -c "
+**Check feed format**:
+```python
 import feedparser
 feed = feedparser.parse('FEED_URL')
 print(f'Entries: {len(feed.entries)}')
-for e in feed.entries[:3]:
-    print(f'- {e.title}')
-"
+print(f'Status: {feed.status}')
 ```
 
-## Common Fixes
+### Common Issues & Fixes
 
-**Feed URL changed:**
-- Search outlet's website for new RSS link
-- Check /feed, /rss, /atom.xml paths
-- Update `config/rss_feeds.json`
+| Issue | Symptom | Fix |
+|-------|---------|-----|
+| Feed URL changed | 404 error | Find new URL, update config |
+| Rate limited | Intermittent failures | Add delay or use Playwright |
+| Paywall blocking | Empty feed | Add Playwright source |
+| Format changed | Parse errors | Check RSS vs Atom format |
+| Site redesign | Selectors fail (Playwright) | Update CSS selectors |
 
-**Rate limited:**
-- Add delay between requests (not currently implemented)
-- Consider caching
-- Switch to Playwright for problematic sources
+### Feed Configuration
 
-**Paywall blocking:**
-- Add to Playwright sources in `playwright_fetcher.py`
-- Try different URL patterns
-- Add User-Agent header
+Located in `config/rss_feeds.json`:
+```json
+{
+  "name": "Outlet Name",
+  "domain": "outlet.com",
+  "rss_url": "https://outlet.com/feed/",
+  "priority": 2,
+  "notes": "Optional notes"
+}
+```
 
-**Format changed:**
-- Check if RSS → Atom or vice versa
-- Update parser expectations
-- May need custom date parsing
+## Examples
 
-## Priority Sources to Monitor
+**Input**: "Why are we missing NorthJersey stories?"
 
-These outlets should always be returning stories:
-1. NJ.com (primary statewide)
-2. NJ Spotlight News (statewide policy)
-3. NJ Monitor (statewide)
-4. NorthJersey.com (North Jersey regional)
-5. Press of Atlantic City (South Jersey regional)
+**Output**:
+```
+FEED DIAGNOSIS: NorthJersey.com
 
-If any of these return 0 stories, investigate immediately.
+Status: BLOCKED (0 stories returned)
+URL: https://www.northjersey.com/arcio/rss/
+
+Test result:
+- HTTP Status: 403 Forbidden
+- User-Agent blocking detected
+
+ROOT CAUSE: USA Today Network blocks automated requests
+
+SOLUTION:
+NorthJersey.com is already configured in Playwright sources.
+Verify Playwright is enabled: run with --playwright flag
+
+Alternative: Check if they have public RSS at /feeds or /rss
+```
+
+**Input**: "Run feed health check"
+
+**Output**:
+```
+FEED HEALTH REPORT - Dec 25, 2025
+
+BROKEN (0 stories, need attention):
+- TAPinto Montclair: Feed empty
+  → Use Playwright scraper (already configured)
+
+- NJ Advance Media: Feed URL 404
+  → Check for new feed location
+
+UNDERPERFORMING (<5 stories when expect 10+):
+- Press of AC: Only 2 stories
+  → May be rate limited, verify with manual test
+
+UNCONFIGURED (null RSS URL):
+- Newark News Today
+- Jersey City Times
+- NJ PBS
+→ These rely on Playwright or need RSS discovery
+
+HEALTHY: 62/75 feeds returning normal counts
+
+TOP PERFORMERS:
+- NJ.com: 45 stories
+- NJ Spotlight: 28 stories
+- NJ Monitor: 22 stories
+
+RECOMMENDATION: Run with --playwright for full coverage
+```
+
+## Guidelines
+
+1. Test systematically before concluding feed is broken
+2. Distinguish network errors from feed format issues
+3. Check if Playwright backup exists before panicking
+4. Document fixes in feed config notes
+5. Priority 1 feeds need immediate attention
+
+## Integration
+
+- **dnr-quality-audit**: Coverage gaps may indicate feed issues
+- **dnr-source-management**: Broken feeds may need config updates
+- **dnr-automation**: Feed health affects pipeline reliability
+
+## File References
+
+- Feed config: `config/rss_feeds.json`
+- RSS fetcher: `src/rss_fetcher.py`
+- Playwright sources: `src/playwright_fetcher.py`
+- Test utility: `rss_fetcher.py --test`

@@ -6,139 +6,146 @@ allowed-tools: Read, Grep
 
 # Classification Edge Case Handler
 
-You are a senior editor making judgment calls on story classification. Simple keyword filters catch obvious cases, but you handle the nuanced decisions where headlines could go multiple ways.
+## When to Activate
 
-## The Core Distinction: Crime Blotter vs Policy News
+Activate this skill when:
+- User questions why a story was classified a certain way
+- Story seems miscategorized
+- Crime vs policy distinction is unclear
+- User asks "should this be in top stories?"
+- Classification confidence is low (< 0.5)
 
-**Crime Blotter** = "What happened to whom"
-- Individual incidents without systemic implications
-- Focus on the crime itself, not what it reveals
-- Examples: "Man shot in Newark", "Carjacking suspect arrested"
+## Core Concepts
 
-**Policy News** = "What this reveals about systems/institutions"
-- Systemic issues, patterns, or institutional responses
-- Accountability journalism about government/organizations
-- Examples: "AG investigation reveals pattern of corruption", "Report documents police misconduct"
+**The Fundamental Distinction**:
+- **Crime Blotter** = "What happened to whom" → Isolated incident, no systemic implications
+- **Policy News** = "What this reveals about systems/institutions" → Accountability, reform, patterns
 
-## Classification Decision Tree
+This distinction is the #1 judgment call in DNR classification.
 
-### Does it mention crime/violence?
-
-**If YES, ask:**
-1. Is this about a pattern or systemic issue? → May be policy news
-2. Are government officials/institutions the subject? → May be politics
-3. Is there a policy response or reform angle? → May be appropriate section
-4. Is it an isolated incident? → Likely crime blotter (skip for top_stories)
-
-### Does it mention NJ Transit/transportation?
-
-**Ask:**
-1. Service disruption/delays → lastly (operational, not policy)
-2. Fare changes, budget, contracts → politics or top_stories
-3. Infrastructure projects → housing or top_stories
-4. Labor issues → politics
-
-### Does it mention schools/education?
-
-**Ask:**
-1. Individual school event → lastly or education
-2. Policy/curriculum debate → education or politics
-3. Budget/funding issues → education or top_stories
-4. Board of Ed controversy → politics
-
-## Confidence Assessment
-
-Rate classification confidence:
-
-**HIGH confidence:**
-- Clear keyword match to single section
-- No competing section claims
-- Standard story type for that section
-
-**MEDIUM confidence:**
-- Could fit 2 sections
-- Has elements of crime AND policy
-- Statewide impact unclear
-
-**LOW confidence:**
-- Genuinely ambiguous
-- Multiple competing signals
-- Unusual story type
-
-## When to Elevate to top_stories
-
-**YES for top_stories:**
+**Top Stories Criteria** (must meet at least one):
 - Multi-outlet coverage (3+ major outlets)
 - Major court ruling with statewide impact
 - Governor/legislative action on significant policy
 - Budget/fiscal news affecting many NJ residents
 - Major investigation revealing systemic issues
 
-**NO for top_stories:**
-- Individual crime incidents
+**Never Top Stories**:
+- Individual crime incidents (unless policy angle)
 - Local government routine business
-- Single outlet coverage without statewide impact
 - Sports, entertainment, lifestyle
-- Lottery, weather, traffic
+- Lottery, weather, traffic reports
 
-## Output Format for Edge Cases
+## Practical Guidance
+
+### Decision Tree for Ambiguous Stories
 
 ```
-CLASSIFICATION ANALYSIS: "[Headline]"
-
-CURRENT CLASSIFICATION: [section] (confidence: [0.0-1.0])
-
-SIGNALS DETECTED:
-Crime indicators: [list or "none"]
-Policy indicators: [list or "none"]
-Section keywords: [which section keywords matched]
-
-COMPETING CLASSIFICATIONS:
-- [section1]: [why it could go here]
-- [section2]: [why it could go here]
-
-EDITORIAL JUDGMENT:
-[Your reasoning about the correct classification]
-
-RECOMMENDATION: [KEEP in current / MOVE to X / NEEDS HUMAN REVIEW]
-
-Reasoning: [Brief explanation in editor voice]
+Does headline mention crime/violence keywords?
+├── NO → Use standard section matching
+└── YES → Ask: Is there a policy/systemic angle?
+    ├── YES (pattern, investigation, reform) → May be appropriate section
+    └── NO (isolated incident) → Skip from top_stories
 ```
 
-## Common Edge Cases
+### Examples by Pattern
 
-### Corruption/Scandal Stories
-- "Officials charged with..." → Check if systemic or individual
-- Pattern of behavior → top_stories or politics
-- One-off incident → politics (not top_stories)
+**Corruption/Scandal**:
+- "Officials charged with bid-rigging" → POLICY (systemic, accountability)
+- "Councilman arrested for DUI" → CRIME (individual misconduct)
 
-### Police/Law Enforcement
-- Misconduct investigation → politics (institutional)
-- Officer involved shooting → depends on policy response angle
-- Contract negotiations → politics (labor)
-- Crime arrest → skip for top_stories
+**Police/Law Enforcement**:
+- "AG report documents pattern of misconduct" → POLICY (systemic)
+- "Officer-involved shooting in Newark" → Depends on policy response angle
+- "Police union contract negotiations" → POLITICS (labor issue)
 
-### Development/Construction
-- Affordable housing project → housing
-- Stadium/arena project → politics (public funding) or lastly (entertainment)
-- Infrastructure (roads, bridges) → may be top_stories if major
+**Transportation**:
+- "NJ Transit fare increases" → POLITICS or TOP_STORIES (policy)
+- "Train delays due to signal problems" → LASTLY (operational)
+- "Federal infrastructure grant for NJ Transit" → TOP_STORIES (major funding)
 
-### Health Stories
-- Hospital news → health
-- Public health policy → health or top_stories
-- Individual medical story → lastly
-- COVID policy → health or politics
+**Development**:
+- "Affordable housing project approved" → HOUSING
+- "Stadium financing debate" → POLITICS (public funding)
+- "New restaurant opening" → LASTLY
 
-## Section Criteria Reference
+## Examples
 
-Quick reference for section placement:
+**Input**: "AG charges 5 officials with corruption in contract scheme"
 
-| Section | Primary Focus | NOT for |
-|---------|--------------|---------|
-| top_stories | Major policy, statewide impact, multi-outlet | Crime, sports, local-only |
-| politics | Government, elections, courts | Entertainment, sports |
-| housing | Development, zoning, affordability | General business |
-| education | Schools, universities, policy | Individual student stories |
-| health | Healthcare, public health | General lifestyle |
-| environment | Climate, energy, DEP | Weather reports |
-| lastly | Arts, sports, lighter news | Hard news |
+**Output**:
+```
+CLASSIFICATION ANALYSIS
+
+Headline: "AG charges 5 officials with corruption in contract scheme"
+
+CRIME INDICATORS:
+- "charges" - criminal action
+- "corruption" - criminal activity
+
+POLICY INDICATORS:
+- "officials" - government actors
+- "contract scheme" - systemic issue
+- AG involvement suggests accountability journalism
+
+VERDICT: KEEP in top_stories
+
+Reasoning: This is accountability journalism about systemic
+government failure, not crime blotter. The focus is on
+institutional corruption, not individual criminal acts.
+
+The key question: Does this story inform citizens about
+how their government/institutions function?
+Answer: YES → Policy news
+```
+
+**Input**: "Man shot during argument over parking spot"
+
+**Output**:
+```
+CLASSIFICATION ANALYSIS
+
+Headline: "Man shot during argument over parking spot"
+
+CRIME INDICATORS:
+- "shot" - violent crime
+- Individual victim
+
+POLICY INDICATORS:
+- None identified
+
+VERDICT: SKIP from top_stories
+
+Reasoning: This is crime blotter - an isolated violent
+incident with no systemic or policy implications.
+```
+
+## Guidelines
+
+1. Always explain reasoning, not just verdict
+2. Look for institutional/systemic angle in crime stories
+3. Multi-outlet coverage elevates importance regardless of topic
+4. When genuinely ambiguous, lean toward inclusion (editor can remove)
+5. Consider: "Does this inform citizens about how institutions work?"
+
+## Integration
+
+- **dnr-editorial-feedback**: Uses same crime/policy logic
+- **dnr-filter-rules**: Keywords trigger this skill for edge cases
+- **dnr-quality-audit**: Classification issues show in section imbalance
+
+## Confidence Calibration
+
+| Confidence | Meaning | Action |
+|------------|---------|--------|
+| 0.8-1.0 | Clear match | Auto-assign |
+| 0.5-0.8 | Probable match | Assign but note |
+| 0.3-0.5 | Uncertain | Flag for review |
+| < 0.3 | Low confidence | Needs human decision |
+
+## File References
+
+- Classification logic: `src/classifier.py`
+- Section descriptions: `SECTION_DESCRIPTIONS` dict
+- Exclusion keywords: `TOP_STORIES_EXCLUSION_KEYWORDS`
+- Filter function: `filter_top_stories()`

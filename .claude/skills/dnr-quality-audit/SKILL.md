@@ -6,121 +6,128 @@ allowed-tools: Read, Grep, Glob, Bash
 
 # Newsletter Quality Audit
 
-You are an experienced newsletter editor checking today's edition before it goes out to 3,000 subscribers. Your job is to catch issues that would make the NJ News Commons look bad or fail to serve readers.
+## When to Activate
 
-## What Makes a Good DNR Edition
+Activate this skill when:
+- User says "audit", "check quality", or "review newsletter"
+- Before sending newsletter to 3,000 subscribers
+- Newsletter "feels off" or unbalanced
+- Sections are unexpectedly empty or overflowing
+- User asks about coverage gaps or missing topics
 
-**Section Balance:**
-- top_stories: 3-6 stories (never more than 6)
-- politics: 5-15 stories (often the largest section)
-- housing: 3-10 stories
-- education: 3-10 stories
-- health: 3-10 stories
-- environment: 3-10 stories
-- lastly: 5-20 stories (catch-all for lighter news)
+## Core Concepts
 
-**Coverage Diversity:**
-- Mix of statewide outlets (NJ.com, NJ Spotlight, NJ Monitor)
-- Regional representation (North, Central, South Jersey)
-- Hyperlocal perspectives when relevant
-- Not dominated by any single outlet
+**Quality Dimensions**: A good DNR edition balances five dimensions:
+1. **Section Balance** - Appropriate story counts per section
+2. **Coverage Breadth** - Major ongoing stories represented
+3. **Source Diversity** - Mix of statewide, regional, hyperlocal
+4. **Geographic Spread** - North, Central, South Jersey representation
+5. **Freshness** - Content within appropriate time window
 
-**Freshness:**
-- Monday: Stories from Friday 5am onwards (76 hours)
-- Tue-Thu: Stories from past 36 hours
-- Nothing older than lookback window
+**Expected Ranges** (based on historical analysis):
+| Section | Typical | Warning |
+|---------|---------|---------|
+| top_stories | 3-6 | >6 or 0 |
+| politics | 5-15 | >20 or <3 |
+| housing | 3-10 | 0 |
+| education | 3-10 | 0 |
+| health | 3-10 | 0 |
+| environment | 3-10 | 0 |
+| lastly | 5-20 | >25 |
 
-**Topic Variety:**
-- Not 5 stories about the same narrow topic
-- Major ongoing stories represented (NJ Transit, offshore wind, etc.)
-- Breaking news included if significant
+**Ongoing Stories**: Topics that should almost always appear:
+- NJ Transit (constant newsworthy)
+- State legislature (when in session)
+- Offshore wind (major multi-year story)
+- Housing affordability (persistent issue)
 
-## Quality Checks to Perform
+## Practical Guidance
 
-### 1. Section Balance Check
-Read the HTML preview and count stories per section. Flag:
-- Any section with 0 stories
-- Sections significantly below typical range
-- Sections exceeding maximum (especially top_stories > 6)
+### Audit Checklist
 
-### 2. Coverage Gap Check
-Look for missing coverage of:
-- NJ Transit (almost always newsworthy)
-- State legislature (if in session)
-- Offshore wind (major ongoing story)
-- Housing/affordability (constant issue)
-- Major breaking news you're aware of
+**1. Section Balance**
+- Count stories per section
+- Flag sections outside typical range
+- Check top_stories doesn't exceed 6
 
-### 3. Source Diversity Check
-Count stories per outlet. Flag:
-- More than 40% from any single outlet
-- Zero hyperlocal stories
-- Missing major outlets (NJ.com, NJ Spotlight should usually appear)
+**2. Coverage Gaps**
+- Compare against ongoing story list
+- Note missing major topics
+- Check for breaking news that should be included
 
-### 4. Duplicate Topic Check
-Look for multiple stories on same narrow topic that should be grouped:
-- Same announcement covered multiple times
-- Same incident without policy angle repeated
-- Same topic dominating a section
+**3. Source Analysis**
+- Calculate outlet distribution
+- Flag if >40% from single source
+- Verify hyperlocal representation (target: 20-25%)
 
-### 5. Geographic Balance Check
-Note the geographic distribution:
-- Heavy North Jersey, light South Jersey (common issue)
-- Missing county regions entirely
-- All statewide, no local perspectives
+**4. Duplicate Detection**
+- Look for same event covered multiple times
+- Identify grouping opportunities
+- Check for topic clustering (5 stories on same narrow issue)
 
-### 6. Freshness Check
-If visible, check publication dates:
-- Stories older than lookback window
-- Evergreen content mixed with breaking news
+**5. Geographic Check**
+- Note regional distribution
+- Flag if entire region missing
+- Check South Jersey representation (often light)
 
-## Output Format
+**6. Freshness Validation**
+- Verify dates within lookback window
+- Monday: 76 hours (Friday 5am - now)
+- Tue-Thu: 36 hours
 
+## Examples
+
+**Input**: "Audit today's newsletter"
+
+**Output**:
 ```
-NEWSLETTER QUALITY AUDIT - [Date]
+NEWSLETTER QUALITY AUDIT - Dec 25, 2025
 
 SECTION BALANCE:
-top_stories: N [check/warning]
-politics: N [check/warning]
-housing: N [check/warning]
-education: N [check/warning]
-health: N [check/warning]
-environment: N [check/warning]
-lastly: N [check/warning]
+top_stories: 5 ✓
+politics: 12 ✓
+housing: 2 ⚠️ (below typical 3-10)
+education: 8 ✓
+health: 4 ✓
+environment: 1 ⚠️ (below typical 3-10)
+lastly: 15 ✓
 
 COVERAGE GAPS:
-- [Missing topic/area 1]
-- [Missing topic/area 2]
-
-POTENTIAL ISSUES:
-- [Issue description]
-- [Issue description]
+- No NJ Transit stories (usually 1-2/day)
+- No offshore wind coverage (major ongoing)
 
 SOURCE DIVERSITY:
-- Top sources: [Outlet] (N%), [Outlet] (N%)
-- Hyperlocal representation: [percentage]
-- [Any concerns]
+- NJ.com: 35% ✓
+- NJ Spotlight: 20% ✓
+- Hyperlocal: 18% ⚠️ (target 20-25%)
 
 GEOGRAPHIC BALANCE:
-- [Assessment]
+- North Jersey: 45%
+- Central Jersey: 35%
+- South Jersey: 20% ✓
 
-RECOMMENDATIONS:
-1. [Specific actionable recommendation]
-2. [Specific actionable recommendation]
+POTENTIAL ISSUES:
+- 3 stories about same Murphy announcement (group?)
 
-OVERALL ASSESSMENT: [Ready to send / Needs attention / Major issues]
+OVERALL: Ready with minor issues
 ```
 
-## Reading Newsletter Data
+## Guidelines
 
-Check these files:
-- `drafts/dnr-YYYY-MM-DD.html` - Generated preview
-- `history/dnr-template.html` - Template structure
+1. Always complete full checklist before overall assessment
+2. Flag issues with specific data, not vague concerns
+3. Provide actionable recommendations
+4. Note both problems and what's working well
+5. Consider news cycle context (slow news day vs major events)
 
-Count stories by looking for `<li>` tags within each section's content area.
+## Integration
 
-Section markers in HTML:
-- `<!-- TOP STORIES -->`
-- `<!-- POLITICS STORIES -->`
-- `<!-- HOUSING STORIES -->`
-- etc.
+- **dnr-story-grouping**: Grouping addresses duplicate topic issues
+- **dnr-feed-health**: Feed issues may explain coverage gaps
+- **dnr-classification**: Section imbalance may indicate classification drift
+
+## File References
+
+- Preview to audit: `drafts/dnr-YYYY-MM-DD.html`
+- Section markers: `<!-- TOP STORIES -->`, `<!-- POLITICS STORIES -->`, etc.
+- Template structure: `history/dnr-template.html`

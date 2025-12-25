@@ -6,145 +6,124 @@ allowed-tools: Read, Grep, Bash
 
 # Airtable Submission Triage
 
-You are pre-processing user submissions from the Airtable form before the editor reviews them. Your job is to auto-categorize what you can, flag duplicates, and identify submissions needing human attention.
+## When to Activate
 
-## Submission Fields
+Activate this skill when:
+- User mentions "Airtable submissions" or "user submissions"
+- Workflow Step 4 (review Airtable submissions) is reached
+- User asks to "triage" or "pre-process" submissions
+- Many submissions need review and user wants to speed up process
+- Checking if submitted stories duplicate RSS content
 
-Each Airtable submission contains:
-- **Headline**: User-provided story title
-- **URL**: Link to the article
-- **Source**: Sometimes provided, often needs detection
-- **Section**: Sometimes pre-selected by user
-- **Name**: Submitter name
-- **Email**: Submitter email
-- **Date added**: When submitted
+## Core Concepts
 
-## Auto-Detection Logic
+**Approval Trigger**: In Airtable, when BOTH `Source` AND `Section` fields are populated, an automation sends email to submitter: "Your story was approved for the next edition." Only approve stories that will actually appear.
 
-### Source Detection from URL
+**Auto-Detection Hierarchy**:
+1. **Source**: Extract from URL domain (most reliable)
+2. **Section**: Infer from headline keywords (moderate reliability)
+3. **Duplicates**: Compare against today's RSS stories
 
-Extract source from URL domain. Common mappings:
+**Triage Categories**:
+| Category | Criteria | Action |
+|----------|----------|--------|
+| Auto-approve | Source + section confident | Apply both fields |
+| Needs review | Source OR section unclear | Present for decision |
+| Duplicate | Same story in RSS | Skip or merge sources |
+| Reject | Not NJ news, broken URL | Don't approve |
 
+## Practical Guidance
+
+### Source Detection
+
+Map URL domains to display names:
 ```
 nj.com → NJ.com
 njspotlightnews.org → NJ Spotlight News
 newjerseymonitor.com → NJ Monitor
-newjerseyglobe.com → NJ Globe
 northjersey.com → NorthJersey.com
-app.com → Asbury Park Press
-pressofatlanticcity.com → Press of Atlantic City
 montclairlocal.news → Montclair Local
-villagegreennj.com → Village Green
-tapinto.net → TAPinto [+ town name if in URL]
-hudsonreporter.com → Hudson Reporter
-jerseydigs.com → Jersey Digs
-njbiz.com → NJBIZ
-roi-nj.com → ROI-NJ
-whyy.org → WHYY
-gothamist.com → Gothamist
+tapinto.net → TAPinto [+ town from URL path]
 ```
 
-### Section Detection from Headline
+Full mapping in `src/html_formatter.py:extract_source_from_url()`
 
-Use keyword matching to suggest sections:
+### Section Detection
 
-**politics**: legislature, senator, assembly, governor, Murphy, election, vote, bill, law, court, ruling, judge, mayor, council, commissioner
+Keyword signals for sections:
 
-**housing**: housing, affordable, rent, zoning, development, apartment, condo, real estate, eviction, tenant, landlord, Blue Acres
-
-**education**: school, student, teacher, Rutgers, Montclair State, university, college, education, curriculum, board of ed
-
-**health**: hospital, healthcare, health, medical, nurse, doctor, COVID, vaccine, mental health, Medicaid
-
-**environment**: offshore wind, solar, climate, PFAS, pollution, DEP, environmental, clean energy, flood, storm
-
-**lastly**: restaurant, arts, music, sports, Devils, Giants, Jets, concert, festival, museum, tourism
-
-**top_stories**: Only if multi-outlet coverage detected or major policy announcement
+**politics**: legislature, senator, assembly, governor, Murphy, election, vote, bill, mayor, council
+**housing**: housing, affordable, rent, zoning, development, apartment, tenant, Blue Acres
+**education**: school, student, teacher, Rutgers, university, curriculum, board of ed
+**health**: hospital, healthcare, medical, nurse, COVID, vaccine, mental health
+**environment**: offshore wind, solar, climate, PFAS, pollution, DEP, flood
+**lastly**: restaurant, arts, music, sports, Devils, Giants, festival, museum
 
 ### Duplicate Detection
 
-Check if submission URL or similar headline exists in today's RSS stories:
-- Exact URL match → Definite duplicate
-- Same headline from same source → Duplicate
-- Similar headline from different source → Potential grouping opportunity
+Compare submission URL against:
+- Today's RSS feed URLs (exact match)
+- Similar headlines from same source (likely duplicate)
+- Same event from different source (grouping opportunity)
 
-## Triage Categories
+## Examples
 
-### AUTO-APPROVED
-- Source confidently detected from URL
-- Section clearly indicated by headline keywords
-- URL is accessible and valid
-- Not a duplicate of RSS content
+**Input**: 7 Airtable submissions to review
 
-### NEEDS REVIEW
-- Source unclear or from unknown domain
-- Headline too vague to categorize
-- User-provided section seems wrong for content
-- URL returns error or paywall
-
-### DUPLICATE
-- Same URL already in RSS feed
-- Same story from same source
-
-### REJECTED
-- Not NJ news (NYC, PA, national without NJ angle)
-- Promotional/spam content
-- Broken URL (404, domain expired)
-- Too old (outside lookback window)
-
-## Output Format
-
+**Output**:
 ```
-AIRTABLE SUBMISSION TRIAGE - [Date]
-[N] submissions to review
+AIRTABLE TRIAGE - 7 submissions
 
-AUTO-APPROVED ([N]):
-[1] "[Headline]"
-    Source: [Detected source] (from URL)
-    Section: [Suggested section] (keywords: X, Y)
-    Submitted by: [Name]
+AUTO-APPROVED (3):
+✓ "Montclair council approves downtown rezoning"
+  Source: Montclair Local (from URL)
+  Section: housing (keywords: council, approves, rezoning)
 
-[2] "[Headline]"
-    ...
+✓ "Rutgers announces new engineering dean"
+  Source: Rutgers Today (from URL)
+  Section: education (keywords: Rutgers, announces)
 
-NEEDS REVIEW ([N]):
-[1] "[Headline]"
-    Issue: [Why it needs review]
-    URL: [URL]
-    Submitted by: [Name]
+✓ "Murphy signs offshore wind expansion bill"
+  Source: NJ Spotlight News (from URL)
+  Section: environment (keywords: offshore wind, bill)
 
-DUPLICATES DETECTED ([N]):
-[1] "[Headline]"
-    Already in: [Source via RSS]
-    Action: Skip or merge sources?
+NEEDS REVIEW (2):
+? "Big news from Trenton"
+  Issue: Vague headline, can't determine section
+  Source: InsiderNJ (detected)
 
-REJECTED ([N]):
-[1] "[Headline]"
-    Reason: [Why rejected]
+? "Check out this important story"
+  Issue: No real headline provided
+  URL: [needs verification]
 
-SUMMARY:
-- [N] ready to auto-approve
-- [N] need manual review
-- [N] duplicates to handle
-- [N] rejected
+DUPLICATE (1):
+! "NJ Transit announces fare hikes"
+  Already in RSS from NJ.com
+  Action: Skip (duplicate) or add source?
+
+REJECTED (1):
+✗ "Best pizza spots in Brooklyn"
+  Reason: Not NJ news (NYC focus)
+
+SUMMARY: 3 auto-approve, 2 review, 1 duplicate, 1 reject
 ```
 
-## Checking for Duplicates
+## Guidelines
 
-To compare against RSS stories, read the current day's output or run a quick check:
+1. Only auto-approve when BOTH source and section are confident
+2. When in doubt, categorize as "needs review"
+3. Flag duplicates for merge decision, don't auto-skip
+4. Check URL accessibility before approving
+5. Preserve submitter attribution in notes
 
-```bash
-# Check if URL exists in today's stories
-grep -r "URL_DOMAIN" drafts/dnr-*.html
-```
+## Integration
 
-Or search the RSS fetcher output if available.
+- **dnr-story-grouping**: Duplicates may be grouping opportunities
+- **dnr-source-management**: Unknown domains may need adding
+- **dnr-classification**: Section suggestions use same logic
 
-## When Approval Triggers Automation
+## File References
 
-In Airtable, when BOTH Source AND Section fields are populated:
-- An automation triggers
-- Sends email to submitter: "Your story was approved for the next edition"
-
-So only approve (fill both fields) for stories that will actually appear in the newsletter.
+- Airtable fetcher: `src/airtable_fetcher.py`
+- Section mapping: `SECTION_MAP` and `NEWSLETTER_TO_AIRTABLE` dicts
+- Review workflow: `src/workflow.py:review_airtable_submissions()`
